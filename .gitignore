@@ -1,0 +1,39 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/**/build/
+
+# Local environment (paths, SDK location, signing)
+local.properties
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.fleet/
+.cxx/
+
+# Android Studio captures and profiling
+captures/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Misc
+*.swp
+*.swo
+*~
+
+# Tooling sandbox (Claude Code, etc.)
+.claude/

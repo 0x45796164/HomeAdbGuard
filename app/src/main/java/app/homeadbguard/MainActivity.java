@@ -376,6 +376,18 @@ public final class MainActivity extends AppCompatActivity {
                     Chip chip = new Chip(this);
                     chip.setText(b);
                     chip.setClickable(false);
+                    chip.setCloseIconVisible(true);
+                    chip.setOnCloseIconClickListener(v -> {
+                        if (Prefs.homeBssids(this).size() <= 1) {
+                            snack(getString(R.string.bssid_remove_only));
+                            return;
+                        }
+                        Prefs.removeBssid(this, b);
+                        Prefs.setLastEvaluation(this, "Removed " + b + " from trusted list");
+                        MonitorService.applyCurrentState(this);
+                        snack(getString(R.string.bssid_remove_done, b));
+                        refresh();
+                    });
                     binding.homeBssidChips.addView(chip);
                 }
             }
@@ -404,6 +416,11 @@ public final class MainActivity extends AppCompatActivity {
         binding.diagWifiSource.setText(valueOrDash(wifi.source));
         binding.diagLastEval.setText(valueOrDash(Prefs.lastEvaluation(this)));
         binding.diagLastApply.setText(valueOrDash(Prefs.lastApplyResult(this)));
+
+        java.util.List<String> history = Prefs.decisionHistory(this);
+        binding.diagHistory.setText(history.isEmpty()
+                ? getString(R.string.diag_history_empty)
+                : String.join("\n", history));
     }
 
     // ---------- Helpers ----------

@@ -652,6 +652,20 @@
                         <TextView android:layout_height="wrap_content" android:layout_width="wrap_content" style="@style/Label" android:layout_marginTop="8dp" android:text="@string/diag_last_apply" />
                         <TextView android:layout_height="wrap_content" android:layout_width="match_parent" android:id="@+id/diag_last_apply" style="@style/Value" android:fontFamily="monospace" tools:text="…" />
 
+                        <TextView android:layout_height="wrap_content" android:layout_width="wrap_content" style="@style/Label" android:layout_marginTop="16dp" android:text="@string/diag_history_label" />
+                        <TextView
+                            android:id="@+id/diag_history"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:background="?attr/colorSurfaceContainerHigh"
+                            android:fontFamily="monospace"
+                            android:padding="12dp"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textIsSelectable="true"
+                            tools:text="Recent decisions…" />
+
                         <TextView android:layout_height="wrap_content" android:layout_width="wrap_content" style="@style/Label" android:layout_marginTop="16dp" android:text="@string/package_label" />
                         <TextView android:layout_height="wrap_content" android:layout_width="match_parent" android:id="@+id/diag_package" style="@style/Value" android:fontFamily="monospace" tools:text="app.homeadbguard" />
 

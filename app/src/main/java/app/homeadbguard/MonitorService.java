@@ -59,19 +59,22 @@ public final class MonitorService extends Service {
         WifiState wifi = WifiState.current(context);
         HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
         SecureSettings.ApplyResult apply = SecureSettings.setSafeState(context, match.atHome);
-        Prefs.setLastEvaluation(
-                context,
-                Instant.now() + ": atHome=" + match.atHome
-                        + ", reason=" + match.reason
-                        + ", wifi=" + wifiSummary(wifi)
-                        + ", apply=" + apply
-        );
+        Instant now = Instant.now();
+        String evaluation = now + ": atHome=" + match.atHome
+                + ", reason=" + match.reason
+                + ", wifi=" + wifiSummary(wifi)
+                + ", apply=" + apply;
+        Prefs.setLastEvaluation(context, evaluation);
+        Prefs.appendDecision(context, now + " " + (match.atHome ? "ENABLE" : "DISABLE")
+                + " — " + match.reason
+                + (wifi.ssid == null || wifi.ssid.isEmpty() ? "" : " (on " + wifi.ssid + ")"));
         if (Prefs.monitoring(context)) {
             NotificationManager nm = context.getSystemService(NotificationManager.class);
             if (nm != null) {
                 nm.notify(NOTIFICATION_ID, buildNotification(context, wifi, match));
             }
         }
+        AdbGuardWidget.refreshAll(context);
     }
 
     static String wifiSummary(WifiState wifi) {

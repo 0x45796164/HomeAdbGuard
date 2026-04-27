@@ -280,6 +280,25 @@ Long-press the app icon on a home screen or the launcher to access:
 - **Re-check** — re-evaluates the current Wi-Fi and applies the matching
   state.
 
+## Home-screen widget
+
+Add the **Home ADB Guard** widget from the launcher's widget picker. It
+shows a glanceable status with the same color states as the in-app hero
+card (green / red / amber). Tap the widget to open the app. The widget
+refreshes whenever the monitor service re-evaluates.
+
+## Decision history
+
+The Diagnostics card keeps the last 10 enable/disable decisions with
+timestamps and reasons. Tap to expand. Useful when you want to know
+*why* ADB toggled at a certain time.
+
+## Removing a single trusted access point
+
+Each chip in **Saved home Wi-Fi → Trusted access points** has an X icon.
+Tap it to remove that BSSID. The app refuses to remove the last remaining
+BSSID — use **Clear saved home** instead if you want to start over.
+
 ## Notification actions
 
 While monitoring, the persistent notification shows the current network and

@@ -3,8 +3,11 @@ package app.homeadbguard;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 final class Prefs {
@@ -15,6 +18,10 @@ final class Prefs {
     static final String KEY_ALLOW_SSID_ONLY = "allow_ssid_only";
     static final String KEY_LAST_EVALUATION = "last_evaluation";
     static final String KEY_LAST_APPLY_RESULT = "last_apply_result";
+    static final String KEY_DECISION_HISTORY = "decision_history";
+
+    private static final int HISTORY_MAX = 10;
+    private static final String HISTORY_SEP = "\n";
 
     private Prefs() {
     }
@@ -67,6 +74,39 @@ final class Prefs {
         String normalized = normalizeBssid(bssid);
         if (!normalized.isEmpty()) set.add(normalized);
         get(context).edit().putString(KEY_HOME_BSSIDS, join(set)).apply();
+    }
+
+    static void removeBssid(Context context, String bssid) {
+        String target = normalizeBssid(bssid);
+        if (target.isEmpty()) return;
+        LinkedHashSet<String> set = new LinkedHashSet<>(homeBssids(context));
+        if (!set.remove(target)) return;
+        get(context).edit().putString(KEY_HOME_BSSIDS, join(set)).apply();
+    }
+
+    static void appendDecision(Context context, String entry) {
+        if (entry == null) entry = "";
+        entry = entry.replace('\n', ' ').replace('\r', ' ').trim();
+        if (entry.isEmpty()) return;
+        SharedPreferences p = get(context);
+        String existing = p.getString(KEY_DECISION_HISTORY, "");
+        List<String> kept = new ArrayList<>();
+        kept.add(entry);
+        if (!existing.isEmpty()) {
+            for (String e : existing.split(HISTORY_SEP)) {
+                if (kept.size() >= HISTORY_MAX) break;
+                if (!e.isEmpty()) kept.add(e);
+            }
+        }
+        p.edit().putString(KEY_DECISION_HISTORY, String.join(HISTORY_SEP, kept)).apply();
+    }
+
+    static List<String> decisionHistory(Context context) {
+        String raw = get(context).getString(KEY_DECISION_HISTORY, "");
+        if (raw == null || raw.isEmpty()) return Collections.emptyList();
+        List<String> out = new ArrayList<>();
+        for (String e : raw.split(HISTORY_SEP)) if (!e.isEmpty()) out.add(e);
+        return out;
     }
 
     static void clearHome(Context context) {

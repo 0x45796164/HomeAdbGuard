@@ -75,6 +75,10 @@
     <string name="diag_last_apply">Last settings write</string>
     <string name="diag_verify_hint">Android does not reliably report Developer options state to apps. Verify with:\n\nadb shell settings get global development_settings_enabled\nadb shell settings get global adb_wifi_enabled</string>
     <string name="diag_copy_hint">Copy command</string>
+    <string name="diag_history_label">Recent decisions</string>
+    <string name="diag_history_empty">No decisions yet.</string>
+    <string name="bssid_remove_done">Removed %1$s from trusted list</string>
+    <string name="bssid_remove_only">Cannot remove the last trusted access point. Clear saved home instead.</string>
 
     <!-- Common -->
     <string name="copied_to_clipboard">Copied to clipboard</string>
@@ -105,4 +109,7 @@
     <string name="shortcut_disable_long">Disable ADB now</string>
     <string name="shortcut_recheck_short">Re-check</string>
     <string name="shortcut_recheck_long">Re-check current Wi-Fi</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Show whether ADB over Wi-Fi is currently allowed.</string>
 </resources>

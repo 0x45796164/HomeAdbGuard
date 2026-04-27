@@ -67,7 +67,12 @@ The package should never hold `android.permission.INTERNET`.
 
 ## Supply chain
 
-This project intentionally has **no third-party Android dependencies**. The
-only declared plugin is `com.android.application` from Google. If you fork or
-build from source, audit `app/build.gradle.kts` and `settings.gradle.kts`
-before adding any dependency.
+The only runtime dependencies are first-party Google/AndroidX UI libraries:
+
+- `androidx.appcompat:appcompat`
+- `com.google.android.material:material` (Material Design 3)
+
+There are **no analytics SDKs, ad libraries, crash reporters, or network
+clients**. The only declared Gradle plugin is `com.android.application`. If
+you fork or build from source, audit `app/build.gradle.kts` and
+`settings.gradle.kts` before adding any dependency.

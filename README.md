@@ -15,8 +15,9 @@ Wi-Fi network, and requests them disabled at any other time.
 
 - License: [MIT](LICENSE)
 - Min SDK / Target SDK / Compile SDK: 36 (Android 16)
-- Language: Java, no third-party Android dependencies
+- Language: Java, Views + Material 3 (no Compose, no Kotlin)
 - Build: Android Gradle Plugin 9.1.1, Gradle 9.4.x, JDK 17+
+- UI: Material Design 3, light + dark, adaptive launcher icon, monochrome icon support
 
 ## What it does
 
@@ -37,7 +38,9 @@ Wi-Fi network, and requests them disabled at any other time.
 
 - No `INTERNET` permission. No cleartext traffic.
 - No analytics, telemetry, crash reporting, or network client code.
-- No third-party Android libraries.
+- Only first-party Google/AndroidX libraries: AppCompat and Material
+  Components for Android (Material Design 3). No analytics SDKs, no ad
+  libraries, no crash reporters, no network clients.
 - No accessibility service, no device admin / device owner, no root, no
   Shizuku.
 - No location collection beyond what Android requires for Wi-Fi identity APIs.

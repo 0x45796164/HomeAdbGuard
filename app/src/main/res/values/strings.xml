@@ -1,3 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Home ADB Guard</string>
+    <string name="app_tagline">ADB over Wi-Fi only at home</string>
+
+    <!-- Status hero card -->
+    <string name="status_protected_title">Protected at home</string>
+    <string name="status_protected_subtitle">You\'re on your trusted Wi-Fi. ADB over Wi-Fi and Developer options are allowed to be on.</string>
+    <string name="status_blocked_title">ADB disabled</string>
+    <string name="status_blocked_subtitle">Not on a trusted network. The app keeps ADB over Wi-Fi and Developer options requested off.</string>
+    <string name="status_setup_title">Setup needed</string>
+    <string name="status_setup_subtitle">Finish the steps below to start guarding ADB.</string>
+    <string name="status_idle_title">Monitoring is off</string>
+    <string name="status_idle_subtitle">Your home Wi-Fi is saved. Tap Start monitoring to begin.</string>
+
+    <!-- Setup checklist -->
+    <string name="setup_title">Setup</string>
+    <string name="setup_subtitle">Three quick steps. You only do them once.</string>
+
+    <string name="setup_step_permissions">Grant runtime permissions</string>
+    <string name="setup_step_permissions_desc">Location, Nearby Wi-Fi devices, and Notifications. Required for Android to expose Wi-Fi identity.</string>
+    <string name="setup_action_permissions">Grant permissions</string>
+
+    <string name="setup_step_secure_settings">Grant WRITE_SECURE_SETTINGS via ADB</string>
+    <string name="setup_step_secure_settings_desc">A normal app cannot toggle developer settings. Run this command from your computer once:</string>
+    <string name="setup_command_secure_settings">adb shell pm grant app.homeadbguard android.permission.WRITE_SECURE_SETTINGS</string>
+    <string name="setup_action_open_settings">Open app info</string>
+
+    <string name="setup_step_save_home">Save your home Wi-Fi</string>
+    <string name="setup_step_save_home_desc">Connect to the Wi-Fi you want to trust, then save it. The current SSID and the access point\'s BSSID are stored.</string>
+    <string name="setup_action_save_home">Save current Wi-Fi</string>
+
+    <!-- Current network card -->
+    <string name="current_network_title">Current network</string>
+    <string name="current_network_subtitle">What Android reports right now.</string>
+    <string name="current_network_ssid">Network name (SSID)</string>
+    <string name="current_network_bssid">Access point (BSSID)</string>
+    <string name="current_network_decision">Decision</string>
+    <string name="value_unknown">—</string>
+
+    <!-- Saved home card -->
+    <string name="home_title">Saved home Wi-Fi</string>
+    <string name="home_subtitle">The network the app considers safe.</string>
+    <string name="home_ssid_label">Trusted SSID</string>
+    <string name="home_bssids_label">Trusted access points</string>
+    <string name="home_action_add_bssid">Add this AP</string>
+    <string name="home_action_clear">Clear saved home</string>
+    <string name="home_ssid_only_label">Allow SSID-only matching</string>
+    <string name="home_ssid_only_desc">Treat any AP with the same SSID as home, even if its BSSID is unknown. Less safe — an attacker can spoof an SSID.</string>
+    <string name="home_empty_state">No home Wi-Fi saved yet. Connect to your home network and tap Save current Wi-Fi above.</string>
+
+    <!-- Monitoring card -->
+    <string name="monitor_title">Monitoring</string>
+    <string name="monitor_subtitle">Foreground service that watches the active Wi-Fi and applies the rule.</string>
+    <string name="monitor_switch_label">Monitor in background</string>
+    <string name="monitor_switch_desc">Runs as a persistent notification. Re-evaluates on Wi-Fi changes and every 30 seconds.</string>
+    <string name="monitor_action_apply">Re-check now</string>
+    <string name="monitor_action_disable">Disable ADB now</string>
+    <string name="monitor_action_stop">Stop and disable</string>
+
+    <!-- Diagnostics -->
+    <string name="diag_title">Diagnostics</string>
+    <string name="diag_subtitle">Live state for troubleshooting. Tap to expand.</string>
+    <string name="diag_perm_location">Location</string>
+    <string name="diag_perm_nearby">Nearby Wi-Fi devices</string>
+    <string name="diag_perm_notifications">Notifications</string>
+    <string name="diag_perm_secure_settings">WRITE_SECURE_SETTINGS</string>
+    <string name="diag_location_toggle">System Location toggle</string>
+    <string name="diag_wifi_source">Wi-Fi source</string>
+    <string name="diag_last_evaluation">Last evaluation</string>
+    <string name="diag_last_apply">Last settings write</string>
+    <string name="diag_verify_hint">Android does not reliably report Developer options state to apps. Verify with:\n\nadb shell settings get global development_settings_enabled\nadb shell settings get global adb_wifi_enabled</string>
+    <string name="diag_copy_hint">Copy command</string>
+
+    <!-- Common -->
+    <string name="copied_to_clipboard">Copied to clipboard</string>
+    <string name="granted">Granted</string>
+    <string name="not_granted">Not granted</string>
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
+    <string name="package_label">Package</string>
+
+    <!-- About -->
+    <string name="about_title">About</string>
+    <string name="about_body">Open source, MIT licensed. No internet permission, no telemetry, no analytics. The app fails closed: if anything is uncertain, ADB over Wi-Fi is requested off.</string>
+    <string name="version_label">Version %1$s</string>
 </resources>

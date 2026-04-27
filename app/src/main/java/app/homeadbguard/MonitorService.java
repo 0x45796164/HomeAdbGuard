@@ -6,8 +6,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ServiceInfo;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -27,6 +29,16 @@ public final class MonitorService extends Service {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private ConnectivityManager cm;
     private ConnectivityManager.NetworkCallback callback;
+    private BroadcastReceiver wakeReceiver;
+
+    /**
+     * Last Wi-Fi {@link Network} we positively confirmed as the user's home network.
+     * Used to keep ADB allowed when the screen turns off and Samsung's privacy
+     * stack starts returning {@code <unknown ssid>} for background reads — we
+     * trust the cached state only while we are still on the *exact same*
+     * Network handle (a roam or disconnect produces a new handle).
+     */
+    private static volatile Network lastAtHomeNetwork = null;
 
     private final Runnable watchdog = new Runnable() {
         @Override
@@ -58,6 +70,26 @@ public final class MonitorService extends Service {
     static void applyCurrentState(Context context) {
         WifiState wifi = WifiState.current(context);
         HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
+
+        ConnectivityManager localCm = context.getSystemService(ConnectivityManager.class);
+        Network active = activeWifiNetwork(localCm);
+
+        // Same-Network carry-over: if we were already at home on this exact
+        // Network handle, and the OS just stopped exposing Wi-Fi identity to us
+        // (typical on Samsung after screen-off privacy clamps), keep trusting it.
+        if (!match.atHome && wifi.wifiTransportSeen && !wifi.isUsable()) {
+            Network cached = lastAtHomeNetwork;
+            if (active != null && cached != null && active.equals(cached)) {
+                match = new HomeMatcher.MatchResult(true,
+                        "Wi-Fi identity restricted; trusting last-confirmed home (same Network handle)");
+            }
+        }
+
+        // Update the cache only on a fully-verified at-home decision.
+        if (match.atHome && wifi.isUsable() && active != null) {
+            lastAtHomeNetwork = active;
+        }
+
         SecureSettings.ApplyResult apply = SecureSettings.setSafeState(context, match.atHome);
         Instant now = Instant.now();
         String evaluation = now + ": atHome=" + match.atHome
@@ -75,6 +107,19 @@ public final class MonitorService extends Service {
             }
         }
         AdbGuardWidget.refreshAll(context);
+    }
+
+    private static Network activeWifiNetwork(ConnectivityManager localCm) {
+        if (localCm == null) return null;
+        try {
+            Network active = localCm.getActiveNetwork();
+            if (active == null) return null;
+            NetworkCapabilities caps = localCm.getNetworkCapabilities(active);
+            if (caps == null) return null;
+            return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ? active : null;
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     static String wifiSummary(WifiState wifi) {
@@ -104,9 +149,25 @@ public final class MonitorService extends Service {
         );
         cm = getSystemService(ConnectivityManager.class);
         registerNetworkCallback();
+        registerWakeReceiver();
         applyCurrentState(this);
         handler.removeCallbacks(watchdog);
         handler.postDelayed(watchdog, WATCHDOG_MS);
+    }
+
+    private void registerWakeReceiver() {
+        if (wakeReceiver != null) return;
+        wakeReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context ctx, Intent intent) {
+                // Re-evaluate the moment Wi-Fi identity becomes readable again.
+                applyCurrentState(MonitorService.this);
+            }
+        };
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        filter.addAction(Intent.ACTION_USER_PRESENT);
+        registerReceiver(wakeReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
     }
 
     @Override
@@ -127,6 +188,13 @@ public final class MonitorService extends Service {
                 cm.unregisterNetworkCallback(callback);
             } catch (RuntimeException ignored) {
             }
+        }
+        if (wakeReceiver != null) {
+            try {
+                unregisterReceiver(wakeReceiver);
+            } catch (RuntimeException ignored) {
+            }
+            wakeReceiver = null;
         }
         super.onDestroy();
     }
@@ -156,11 +224,16 @@ public final class MonitorService extends Service {
 
             @Override
             public void onLost(Network network) {
+                Network cached = lastAtHomeNetwork;
+                if (cached != null && cached.equals(network)) {
+                    lastAtHomeNetwork = null;
+                }
                 applyCurrentState(MonitorService.this);
             }
 
             @Override
             public void onUnavailable() {
+                lastAtHomeNetwork = null;
                 SecureSettings.setSafeState(MonitorService.this, false);
             }
         };

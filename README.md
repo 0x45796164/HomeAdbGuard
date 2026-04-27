@@ -312,6 +312,7 @@ the live decision reason. Its three quick actions:
 
 | Case | Behavior |
 |---|---|
+| Screen turns off on a trusted network | Some OEMs (notably Samsung) hide Wi-Fi SSID/BSSID from background apps when the screen is off. The app keeps the trusted state if the underlying `Network` handle is unchanged (same Wi-Fi association); a roam or disconnect produces a new handle and falls back to fail-closed. |
 | Missing `WRITE_SECURE_SETTINGS` | Monitoring runs, settings writes fail. Grant via ADB. |
 | Location permission denied | Wi-Fi identity unavailable; fails closed and disables. |
 | Location toggle off | Wi-Fi identity unavailable; fails closed and disables. |

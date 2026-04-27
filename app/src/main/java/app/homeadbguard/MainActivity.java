@@ -30,6 +30,10 @@ import app.homeadbguard.databinding.ItemSetupStepBinding;
 public final class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST = 1001;
 
+    static final String ACTION_ENABLE_NOW = "app.homeadbguard.action.ENABLE_NOW";
+    static final String ACTION_DISABLE_NOW = "app.homeadbguard.action.DISABLE_NOW";
+    static final String ACTION_RECHECK_NOW = "app.homeadbguard.action.RECHECK_NOW";
+
     private ActivityMainBinding binding;
     private ItemSetupStepBinding stepPermissions;
     private ItemSetupStepBinding stepSecure;
@@ -51,12 +55,47 @@ public final class MainActivity extends AppCompatActivity {
         wireDiagnostics();
 
         binding.versionText.setText(getString(R.string.version_label, BuildConfig.VERSION_NAME));
+
+        handleShortcutIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleShortcutIntent(intent);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         refresh();
+    }
+
+    private void handleShortcutIntent(Intent intent) {
+        if (intent == null || intent.getAction() == null) return;
+        switch (intent.getAction()) {
+            case ACTION_ENABLE_NOW: {
+                SecureSettings.ApplyResult r = SecureSettings.enableNowIfAtHome(this);
+                snack(r.adbWifiWriteOk
+                        ? getString(R.string.enable_succeeded)
+                        : getString(R.string.enable_refused));
+                break;
+            }
+            case ACTION_DISABLE_NOW: {
+                SecureSettings.disableNow(this);
+                snack(getString(R.string.shortcut_disable_short));
+                break;
+            }
+            case ACTION_RECHECK_NOW: {
+                MonitorService.applyCurrentState(this);
+                snack(getString(R.string.shortcut_recheck_short));
+                break;
+            }
+            default:
+                return;
+        }
+        intent.setAction(null);
     }
 
     @Override

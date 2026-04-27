@@ -17,6 +17,7 @@
         tools:ignore="ProtectedPermissions" />
 
     <application
+        android:name=".App"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="false"
@@ -33,6 +34,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="app.homeadbguard.action.ENABLE_NOW" />
+                <action android:name="app.homeadbguard.action.DISABLE_NOW" />
+                <action android:name="app.homeadbguard.action.RECHECK_NOW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <service
@@ -56,5 +67,19 @@
         <receiver
             android:name=".ControlReceiver"
             android:exported="false" />
+
+        <service
+            android:name=".MonitorTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_shield_check"
+            android:label="@string/tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.ACTIVE_TILE"
+                android:value="false" />
+        </service>
     </application>
 </manifest>

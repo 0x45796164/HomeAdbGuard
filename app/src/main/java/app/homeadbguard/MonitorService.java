@@ -66,6 +66,12 @@ public final class MonitorService extends Service {
                         + ", wifi=" + wifiSummary(wifi)
                         + ", apply=" + apply
         );
+        if (Prefs.monitoring(context)) {
+            NotificationManager nm = context.getSystemService(NotificationManager.class);
+            if (nm != null) {
+                nm.notify(NOTIFICATION_ID, buildNotification(context, wifi, match));
+            }
+        }
     }
 
     static String wifiSummary(WifiState wifi) {
@@ -86,9 +92,11 @@ public final class MonitorService extends Service {
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
+        WifiState wifi = WifiState.current(this);
+        HomeMatcher.MatchResult match = HomeMatcher.evaluate(this, wifi);
         startForeground(
                 NOTIFICATION_ID,
-                notification(),
+                buildNotification(this, wifi, match),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
         );
         cm = getSystemService(ConnectivityManager.class);
@@ -161,24 +169,32 @@ public final class MonitorService extends Service {
         }
     }
 
-    private Notification notification() {
+    static Notification buildNotification(Context ctx, WifiState wifi, HomeMatcher.MatchResult match) {
         PendingIntent open = PendingIntent.getActivity(
-                this,
+                ctx,
                 0,
-                new Intent(this, MainActivity.class),
+                new Intent(ctx, MainActivity.class),
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
 
-        PendingIntent disable = ControlReceiver.pendingIntent(this, ControlReceiver.ACTION_DISABLE_NOW, 1);
-        PendingIntent apply = ControlReceiver.pendingIntent(this, ControlReceiver.ACTION_APPLY_NOW, 2);
-        PendingIntent stop = ControlReceiver.pendingIntent(this, ControlReceiver.ACTION_STOP_MONITORING, 3);
+        PendingIntent disable = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_DISABLE_NOW, 1);
+        PendingIntent apply = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_APPLY_NOW, 2);
+        PendingIntent stop = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_STOP_MONITORING, 3);
 
-        return new Notification.Builder(this, CHANNEL_ID)
+        String title = match.atHome
+                ? "Protected — ADB on at home"
+                : "Off-network — ADB disabled";
+        String network = wifi.ssid == null || wifi.ssid.isEmpty() ? "no Wi-Fi" : wifi.ssid;
+        String body = "Network: " + network + "\n" + match.reason;
+
+        return new Notification.Builder(ctx, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_stat_adb_guard)
-                .setContentTitle("Home ADB Guard is monitoring Wi-Fi")
-                .setContentText("ADB over Wi-Fi is enabled only when the saved home Wi-Fi matches.")
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(new Notification.BigTextStyle().bigText(body))
                 .setContentIntent(open)
                 .setOngoing(true)
+                .setShowWhen(false)
                 .addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_rotate, "Apply now", apply).build())
                 .addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Disable now", disable).build())
                 .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_pause, "Stop", stop).build())

@@ -29,7 +29,9 @@ or the network is not trusted — the app fails closed and requests both off.
 - Min SDK / Target SDK / Compile SDK: 36 (Android 16)
 - Language: Java, Views + Material 3 (no Compose, no Kotlin)
 - Build: Android Gradle Plugin 9.1.1, Gradle 9.4.x, JDK 17+
-- UI: Material Design 3, light + dark, adaptive launcher icon, monochrome icon support
+- UI: Material Design 3, light + dark, dynamic colors (Material You) on
+  supported devices, adaptive launcher icon with monochrome layer, Quick
+  Settings tile, launcher shortcuts
 
 ## What it does
 
@@ -256,9 +258,32 @@ The Monitoring card has four buttons:
   on the next watchdog tick if monitoring is on and you are at home.
 - **Stop and disable** — stops monitoring and writes both settings to `0`.
 
+## Quick Settings tile
+
+Edit your Quick Settings panel and add the **Home ADB** tile. Tapping it
+toggles monitoring on/off. The tile state mirrors the app:
+
+- Active + "Protected at home" — monitoring on, current Wi-Fi is trusted.
+- Active + "Off-network — ADB off" — monitoring on, ADB is held disabled.
+- Inactive + "Monitoring off" — monitoring is stopped.
+
+Acting on the tile requires the device be unlocked first (`unlockAndRun`),
+so it cannot weaken protection from the lock screen.
+
+## Launcher shortcuts
+
+Long-press the app icon on a home screen or the launcher to access:
+
+- **Enable ADB** — same as Enable ADB now in the app; refuses if you are
+  not on a trusted network.
+- **Disable ADB** — same as Disable ADB now.
+- **Re-check** — re-evaluates the current Wi-Fi and applies the matching
+  state.
+
 ## Notification actions
 
-While monitoring, the persistent notification exposes:
+While monitoring, the persistent notification shows the current network and
+the live decision reason. Its three quick actions:
 
 - **Apply now** — re-evaluate the current Wi-Fi and apply.
 - **Disable now** — request Wireless debugging and Developer options off.

@@ -88,4 +88,21 @@
     <string name="about_title">About</string>
     <string name="about_body">Open source, MIT licensed. No internet permission, no telemetry, no analytics. The app fails closed: if anything is uncertain, ADB over Wi-Fi is requested off.</string>
     <string name="version_label">Version %1$s</string>
+
+    <!-- Quick Settings tile -->
+    <string name="tile_label">Home ADB</string>
+    <string name="tile_active_home_label">Home ADB</string>
+    <string name="tile_active_home_subtitle">Protected at home</string>
+    <string name="tile_active_away_label">Home ADB</string>
+    <string name="tile_active_away_subtitle">Off-network — ADB off</string>
+    <string name="tile_inactive_label">Home ADB</string>
+    <string name="tile_inactive_subtitle">Monitoring off</string>
+
+    <!-- Launcher shortcuts -->
+    <string name="shortcut_enable_short">Enable ADB</string>
+    <string name="shortcut_enable_long">Enable ADB on home Wi-Fi</string>
+    <string name="shortcut_disable_short">Disable ADB</string>
+    <string name="shortcut_disable_long">Disable ADB now</string>
+    <string name="shortcut_recheck_short">Re-check</string>
+    <string name="shortcut_recheck_long">Re-check current Wi-Fi</string>
 </resources>

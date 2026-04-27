@@ -186,6 +186,16 @@ public final class MainActivity extends AppCompatActivity {
             refresh();
         });
 
+        binding.monitorEnable.setOnClickListener(v -> {
+            SecureSettings.ApplyResult r = SecureSettings.enableNowIfAtHome(this);
+            if (r.adbWifiWriteOk) {
+                snack(getString(R.string.enable_succeeded));
+            } else {
+                snack(getString(R.string.enable_refused));
+            }
+            refresh();
+        });
+
         binding.monitorApply.setOnClickListener(v -> {
             MonitorService.applyCurrentState(this);
             refresh();

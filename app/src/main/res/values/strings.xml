@@ -54,9 +54,13 @@
     <string name="monitor_subtitle">Foreground service that watches the active Wi-Fi and applies the rule.</string>
     <string name="monitor_switch_label">Monitor in background</string>
     <string name="monitor_switch_desc">Runs as a persistent notification. Re-evaluates on Wi-Fi changes and every 30 seconds.</string>
+    <string name="monitor_action_enable">Enable ADB now</string>
     <string name="monitor_action_apply">Re-check now</string>
     <string name="monitor_action_disable">Disable ADB now</string>
     <string name="monitor_action_stop">Stop and disable</string>
+
+    <string name="enable_refused">Not on a trusted network — enable refused</string>
+    <string name="enable_succeeded">ADB requested on. Verify with adb shell settings get global adb_wifi_enabled.</string>
 
     <!-- Diagnostics -->
     <string name="diag_title">Diagnostics</string>

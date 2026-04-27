@@ -11,6 +11,18 @@ Wi-Fi network, and requests them disabled at any other time.
 
 ---
 
+## Screenshots
+
+| At trusted home Wi-Fi | Off-network |
+|---|---|
+| ![Protected at home](docs/screenshots/screenshot1.jpg) | ![ADB disabled](docs/screenshots/screenshot2.jpg) |
+
+Left: monitoring is active on the saved home network — ADB over Wi-Fi and
+Developer options are allowed to be on. Right: Wi-Fi identity is unavailable
+or the network is not trusted — the app fails closed and requests both off.
+
+---
+
 ## Status
 
 - License: [MIT](LICENSE)
@@ -228,6 +240,21 @@ References:
 
 - [Android 14+ foreground service type requirement](https://developer.android.com/about/versions/14/changes/fgs-types-required)
 - [Foreground service types](https://developer.android.com/develop/background-work/services/fgs/service-types)
+
+## In-app actions
+
+The Monitoring card has four buttons:
+
+- **Enable ADB now** — refuses unless the current network matches your saved
+  home Wi-Fi; on a match, writes `development_settings_enabled = 1` and
+  toggles `adb_wifi_enabled` 0 → 1 to nudge AOSP `adbd` into re-binding.
+  Useful when you tapped Disable on a trusted network and want ADB back
+  without cycling Wi-Fi.
+- **Re-check now** — re-evaluates the current network and applies the
+  matching state. The 30-second watchdog already does this in the background.
+- **Disable ADB now** — writes both settings to `0`. The app will re-enable
+  on the next watchdog tick if monitoring is on and you are at home.
+- **Stop and disable** — stops monitoring and writes both settings to `0`.
 
 ## Notification actions
 

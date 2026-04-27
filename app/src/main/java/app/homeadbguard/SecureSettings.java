@@ -3,10 +3,13 @@ package app.homeadbguard;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 
 final class SecureSettings {
     static final String ADB_WIFI_ENABLED = "adb_wifi_enabled";
+    private static final long ADB_TOGGLE_DELAY_MS = 250L;
 
     private SecureSettings() {
     }
@@ -34,6 +37,40 @@ final class SecureSettings {
         }
 
         ApplyResult result = new ApplyResult(true, devOk, adbOk, atHome ? "requested enable" : "requested disable");
+        Prefs.setLastApplyResult(context, result.toString());
+        return result;
+    }
+
+    /**
+     * Force-enable Developer options and ADB over Wi-Fi when the device is on a trusted network.
+     * Refuses (and disables) when not at home, so the button never weakens the protection.
+     *
+     * Toggles ADB_WIFI_ENABLED 0 → 1 with a short delay to nudge AOSP adbd to re-bind the
+     * listening port. A plain rewrite of `1` over an already-`1` value is sometimes ignored.
+     */
+    static ApplyResult enableNowIfAtHome(Context context) {
+        if (!hasWriteSecureSettings(context)) {
+            ApplyResult result = new ApplyResult(false, false, false, "WRITE_SECURE_SETTINGS is not granted");
+            Prefs.setLastApplyResult(context, result.toString());
+            return result;
+        }
+
+        WifiState wifi = WifiState.current(context);
+        HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
+        if (!match.atHome) {
+            ApplyResult result = new ApplyResult(true, false, false, "refused: " + match.reason);
+            Prefs.setLastApplyResult(context, result.toString());
+            return result;
+        }
+
+        boolean devOk = putGlobalInt(context, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 1);
+        putGlobalInt(context, ADB_WIFI_ENABLED, 0);
+        new Handler(Looper.getMainLooper()).postDelayed(
+                () -> putGlobalInt(context, ADB_WIFI_ENABLED, 1),
+                ADB_TOGGLE_DELAY_MS
+        );
+
+        ApplyResult result = new ApplyResult(true, devOk, true, "force enable (toggled)");
         Prefs.setLastApplyResult(context, result.toString());
         return result;
     }

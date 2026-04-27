@@ -152,17 +152,17 @@
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
                     <!-- Step 1: Permissions -->
-                    <include
+                    <include android:layout_height="wrap_content" android:layout_width="match_parent"
                         android:id="@+id/setup_step_permissions"
                         layout="@layout/item_setup_step" />
 
                     <!-- Step 2: ADB grant -->
-                    <include
+                    <include android:layout_height="wrap_content" android:layout_width="match_parent"
                         android:id="@+id/setup_step_secure"
                         layout="@layout/item_setup_step" />
 
                     <!-- Step 3: Save Wi-Fi -->
-                    <include
+                    <include android:layout_height="wrap_content" android:layout_width="match_parent"
                         android:id="@+id/setup_step_home"
                         layout="@layout/item_setup_step" />
 
@@ -486,12 +486,12 @@
                             android:layout_weight="1"
                             android:orientation="vertical">
 
-                            <TextView
+                            <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
                                 android:text="@string/monitor_switch_label"
                                 android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
                                 android:textColor="?attr/colorOnSurface" />
 
-                            <TextView
+                            <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
                                 android:layout_marginTop="2dp"
                                 android:text="@string/monitor_switch_desc"
                                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
@@ -582,12 +582,12 @@
                             android:layout_weight="1"
                             android:orientation="vertical">
 
-                            <TextView
+                            <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
                                 android:text="@string/diag_title"
                                 android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                                 android:textColor="?attr/colorOnSurface" />
 
-                            <TextView
+                            <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
                                 android:text="@string/diag_subtitle"
                                 android:layout_marginTop="2dp"
                                 android:textAppearance="@style/TextAppearance.Material3.BodySmall"
@@ -679,18 +679,18 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <TextView
+                    <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
                         android:text="@string/about_title"
                         android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
                         android:textColor="?attr/colorOnSurface" />
 
-                    <TextView
+                    <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
                         android:layout_marginTop="6dp"
                         android:text="@string/about_body"
                         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
-                    <TextView
+                    <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
                         android:id="@+id/version_text"
                         android:layout_marginTop="12dp"
                         android:textAppearance="@style/TextAppearance.Material3.LabelMedium"

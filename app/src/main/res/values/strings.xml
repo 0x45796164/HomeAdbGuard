@@ -112,4 +112,30 @@
 
     <!-- Widget -->
     <string name="widget_description">Show whether ADB over Wi-Fi is currently allowed.</string>
+
+    <!-- Snooze -->
+    <string name="snooze_title">Snooze auto-disable</string>
+    <string name="snooze_subtitle">Keep ADB on for a fixed duration during maintenance. Only armable while on trusted Wi-Fi.</string>
+    <string name="snooze_15">15 min</string>
+    <string name="snooze_30">30 min</string>
+    <string name="snooze_60">1 hour</string>
+    <string name="snooze_cancel">Cancel snooze</string>
+    <string name="snooze_armed">Snoozed for %1$d min</string>
+    <string name="snooze_active_label">Snoozed — keeping ADB on</string>
+    <string name="snooze_remaining">%1$d min remaining</string>
+    <string name="snooze_refused">Refused: not on trusted Wi-Fi</string>
+
+    <!-- Pairing helper -->
+    <string name="pairing_title">Connect from your computer</string>
+    <string name="pairing_subtitle">Your phone\'s local IP for ADB over Wi-Fi.</string>
+    <string name="pairing_ip_label">Local IPv4</string>
+    <string name="pairing_command_label">Command (replace PORT with the one Android shows under Wireless debugging)</string>
+    <string name="pairing_command_template">adb connect %1$s:PORT</string>
+    <string name="pairing_no_ip">Not connected to a usable network.</string>
+    <string name="pairing_copy_ip">Copy IP</string>
+    <string name="pairing_copy_command">Copy command</string>
+
+    <!-- Automation -->
+    <string name="automation_title">Automation</string>
+    <string name="automation_subtitle">Trigger actions from Tasker, Macrodroid, or adb shell am broadcast. ENABLE and SNOOZE keep the trusted-network gate.</string>
 </resources>

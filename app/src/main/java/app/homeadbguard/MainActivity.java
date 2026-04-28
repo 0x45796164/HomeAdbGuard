@@ -51,6 +51,7 @@ public final class MainActivity extends AppCompatActivity {
 
         wireSetupSteps();
         wireHomeCard();
+        wirePairingCard();
         wireMonitorCard();
         wireDiagnostics();
 
@@ -207,6 +208,38 @@ public final class MainActivity extends AppCompatActivity {
         refresh();
     }
 
+    // ---------- Pairing card ----------
+
+    private void wirePairingCard() {
+        binding.pairingCopyIp.setOnClickListener(v -> {
+            String ip = LocalIp.firstUsableIpv4();
+            if (ip == null) {
+                snack(getString(R.string.pairing_no_ip));
+                return;
+            }
+            copyToClipboard("local IP", ip);
+        });
+        binding.pairingCopyCommand.setOnClickListener(v -> {
+            String ip = LocalIp.firstUsableIpv4();
+            if (ip == null) {
+                snack(getString(R.string.pairing_no_ip));
+                return;
+            }
+            copyToClipboard("adb connect command", getString(R.string.pairing_command_template, ip));
+        });
+    }
+
+    private void renderPairingCard() {
+        String ip = LocalIp.firstUsableIpv4();
+        if (ip == null) {
+            binding.pairingIp.setText(R.string.pairing_no_ip);
+            binding.pairingCommand.setText("—");
+        } else {
+            binding.pairingIp.setText(ip);
+            binding.pairingCommand.setText(getString(R.string.pairing_command_template, ip));
+        }
+    }
+
     // ---------- Monitor card ----------
 
     private void wireMonitorCard() {
@@ -254,6 +287,25 @@ public final class MainActivity extends AppCompatActivity {
             snack("Stopped");
             refresh();
         });
+
+        binding.snooze15.setOnClickListener(v -> armSnooze(15));
+        binding.snooze30.setOnClickListener(v -> armSnooze(30));
+        binding.snooze60.setOnClickListener(v -> armSnooze(60));
+        binding.snoozeCancel.setOnClickListener(v -> {
+            SnoozeArmer.cancel(this);
+            snack(getString(R.string.snooze_cancel));
+            refresh();
+        });
+    }
+
+    private void armSnooze(int minutes) {
+        SnoozeArmer.Result r = SnoozeArmer.arm(this, minutes);
+        if (r == SnoozeArmer.Result.ARMED) {
+            snack(getString(R.string.snooze_armed, minutes));
+        } else {
+            snack(getString(R.string.snooze_refused));
+        }
+        refresh();
     }
 
     // ---------- Diagnostics ----------
@@ -289,6 +341,7 @@ public final class MainActivity extends AppCompatActivity {
         renderSetup(permsOk, secureOk, homeSaved, fullyConfigured);
         renderCurrentNetwork(wifi, match);
         renderHome();
+        renderPairingCard();
         renderMonitor(monitoring);
         renderDiagnostics(wifi);
     }
@@ -403,6 +456,15 @@ public final class MainActivity extends AppCompatActivity {
         if (binding.monitorSwitch.isChecked() != monitoring) {
             binding.monitorSwitch.setChecked(monitoring);
         }
+        boolean snoozing = Prefs.isSnoozeActive(this);
+        if (snoozing) {
+            long remainingMin = (Prefs.snoozeRemainingMs(this) + 59_999L) / 60_000L;
+            binding.snoozeSubtitle.setText(getString(R.string.snooze_active_label) + " — "
+                    + getString(R.string.snooze_remaining, remainingMin));
+        } else {
+            binding.snoozeSubtitle.setText(R.string.snooze_subtitle);
+        }
+        binding.snoozeCancel.setVisibility(snoozing ? View.VISIBLE : View.GONE);
     }
 
     private void renderDiagnostics(WifiState wifi) {

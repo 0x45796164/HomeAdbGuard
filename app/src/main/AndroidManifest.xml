@@ -69,6 +69,20 @@
             android:exported="false" />
 
         <receiver
+            android:name=".AutomationReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="app.homeadbguard.automation.ENABLE" />
+                <action android:name="app.homeadbguard.automation.DISABLE" />
+                <action android:name="app.homeadbguard.automation.RECHECK" />
+                <action android:name="app.homeadbguard.automation.SNOOZE_15" />
+                <action android:name="app.homeadbguard.automation.SNOOZE_30" />
+                <action android:name="app.homeadbguard.automation.SNOOZE_60" />
+                <action android:name="app.homeadbguard.automation.SNOOZE_CANCEL" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".AdbGuardWidget"
             android:exported="false"
             android:label="@string/app_name">

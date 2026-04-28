@@ -19,6 +19,7 @@ final class Prefs {
     static final String KEY_LAST_EVALUATION = "last_evaluation";
     static final String KEY_LAST_APPLY_RESULT = "last_apply_result";
     static final String KEY_DECISION_HISTORY = "decision_history";
+    static final String KEY_SNOOZE_UNTIL = "snooze_until_millis";
 
     private static final int HISTORY_MAX = 10;
     private static final String HISTORY_SEP = "\n";
@@ -99,6 +100,24 @@ final class Prefs {
             }
         }
         p.edit().putString(KEY_DECISION_HISTORY, String.join(HISTORY_SEP, kept)).apply();
+    }
+
+    static long snoozeUntil(Context context) {
+        return get(context).getLong(KEY_SNOOZE_UNTIL, 0L);
+    }
+
+    static void setSnoozeUntil(Context context, long millis) {
+        get(context).edit().putLong(KEY_SNOOZE_UNTIL, millis).apply();
+    }
+
+    static boolean isSnoozeActive(Context context) {
+        return System.currentTimeMillis() < snoozeUntil(context);
+    }
+
+    static long snoozeRemainingMs(Context context) {
+        long until = snoozeUntil(context);
+        long now = System.currentTimeMillis();
+        return until > now ? (until - now) : 0L;
     }
 
     static List<String> decisionHistory(Context context) {

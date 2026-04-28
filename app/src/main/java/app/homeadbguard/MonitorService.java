@@ -90,6 +90,14 @@ public final class MonitorService extends Service {
             lastAtHomeNetwork = active;
         }
 
+        // Snooze: keep ADB enabled regardless. Snooze can only be armed when
+        // the user was already at home (see SnoozeArmer), so this never enables
+        // ADB on an unverified network — it only suppresses auto-disable.
+        if (Prefs.isSnoozeActive(context)) {
+            long remainingMin = (Prefs.snoozeRemainingMs(context) + 59_999L) / 60_000L;
+            match = new HomeMatcher.MatchResult(true, "Snoozed for " + remainingMin + " more min");
+        }
+
         SecureSettings.ApplyResult apply = SecureSettings.setSafeState(context, match.atHome);
         Instant now = Instant.now();
         String evaluation = now + ": atHome=" + match.atHome

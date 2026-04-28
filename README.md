@@ -299,6 +299,42 @@ Each chip in **Saved home Wi-Fi → Trusted access points** has an X icon.
 Tap it to remove that BSSID. The app refuses to remove the last remaining
 BSSID — use **Clear saved home** instead if you want to start over.
 
+## Snooze auto-disable
+
+For maintenance flows (flashing a ROM, long debug sessions) you can pause
+auto-disable for **15 / 30 / 60 minutes** from the Monitoring card. While
+snoozed, ADB stays on regardless of network — but the snooze can only be
+**armed when currently on trusted Wi-Fi**, so it cannot be used to enable
+ADB while away. Snooze is cancellable at any time and the persistent
+notification + decision log show the remaining time.
+
+## Pairing helper
+
+The "Connect from your computer" card shows the device's local IPv4 plus a
+copyable `adb connect <IP>:PORT` template. Use the port that Android shows
+under Settings → Developer options → Wireless debugging → Pair device with
+pairing code (it is dynamic on Android 11+).
+
+## Automation broadcasts
+
+Other automation tools — Tasker, Macrodroid, or just `adb shell am
+broadcast` — can drive Home ADB Guard via these exported actions:
+
+```sh
+adb shell am broadcast -a app.homeadbguard.automation.ENABLE
+adb shell am broadcast -a app.homeadbguard.automation.DISABLE
+adb shell am broadcast -a app.homeadbguard.automation.RECHECK
+adb shell am broadcast -a app.homeadbguard.automation.SNOOZE_15
+adb shell am broadcast -a app.homeadbguard.automation.SNOOZE_30
+adb shell am broadcast -a app.homeadbguard.automation.SNOOZE_60
+adb shell am broadcast -a app.homeadbguard.automation.SNOOZE_CANCEL
+```
+
+`ENABLE` and the `SNOOZE_*` actions still go through the trusted-network
+gate — they refuse if the current Wi-Fi is not the saved home — so an
+unrelated app cannot use them to enable ADB while you are off-network.
+`DISABLE` and `RECHECK` are non-weakening and run unconditionally.
+
 ## Notification actions
 
 While monitoring, the persistent notification shows the current network and

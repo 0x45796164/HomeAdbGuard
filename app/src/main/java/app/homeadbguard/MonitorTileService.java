@@ -46,21 +46,19 @@ public final class MonitorTileService extends TileService {
         Tile tile = getQsTile();
         if (tile == null) return;
 
-        boolean monitoring = Prefs.monitoring(this);
-        WifiState wifi = WifiState.current(this);
-        HomeMatcher.MatchResult match = HomeMatcher.evaluate(this, wifi);
+        int status = AdbGuardWidget.currentStatus(this);
 
         int icon;
         String label;
         String subtitle;
         int state;
 
-        if (!monitoring) {
+        if (status == AdbGuardWidget.STATUS_INACTIVE) {
             icon = R.drawable.ic_shield_off;
             label = getString(R.string.tile_inactive_label);
             subtitle = getString(R.string.tile_inactive_subtitle);
             state = Tile.STATE_INACTIVE;
-        } else if (match.atHome) {
+        } else if (status == AdbGuardWidget.STATUS_AT_HOME) {
             icon = R.drawable.ic_shield_check;
             label = getString(R.string.tile_active_home_label);
             subtitle = getString(R.string.tile_active_home_subtitle);

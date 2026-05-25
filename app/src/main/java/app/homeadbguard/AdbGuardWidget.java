@@ -10,6 +10,17 @@ import android.widget.RemoteViews;
 
 public final class AdbGuardWidget extends AppWidgetProvider {
 
+    static final int STATUS_INACTIVE = 0;
+    static final int STATUS_AT_HOME = 1;
+    static final int STATUS_AWAY = 2;
+
+    static int currentStatus(Context context) {
+        if (!Prefs.monitoring(context)) return STATUS_INACTIVE;
+        WifiState wifi = WifiState.current(context);
+        HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
+        return match.atHome ? STATUS_AT_HOME : STATUS_AWAY;
+    }
+
     @Override
     public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
         for (int id : ids) {
@@ -28,9 +39,7 @@ public final class AdbGuardWidget extends AppWidgetProvider {
     }
 
     private static RemoteViews buildRemoteViews(Context context) {
-        boolean monitoring = Prefs.monitoring(context);
-        WifiState wifi = WifiState.current(context);
-        HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
+        int status = currentStatus(context);
 
         int icon;
         int titleRes;
@@ -38,13 +47,13 @@ public final class AdbGuardWidget extends AppWidgetProvider {
         int containerColor;
         int onContainerColor;
 
-        if (!monitoring) {
+        if (status == STATUS_INACTIVE) {
             icon = R.drawable.ic_warning;
             titleRes = R.string.status_idle_title;
             subtitleRes = R.string.tile_inactive_subtitle;
             containerColor = context.getColor(R.color.status_setup_container);
             onContainerColor = context.getColor(R.color.status_setup);
-        } else if (match.atHome) {
+        } else if (status == STATUS_AT_HOME) {
             icon = R.drawable.ic_shield_check;
             titleRes = R.string.status_protected_title;
             subtitleRes = R.string.tile_active_home_subtitle;

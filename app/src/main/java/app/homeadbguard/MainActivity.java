@@ -4,9 +4,16 @@ import android.Manifest;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.LinkProperties;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.CompoundButton;
@@ -39,6 +46,13 @@ public final class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
 
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private SharedPreferences.OnSharedPreferenceChangeListener prefsListener;
+    private ConnectivityManager.NetworkCallback uiNetCallback;
+    private final Runnable refreshIfActive = () -> {
+        if (binding != null && !isFinishing() && !isDestroyed()) refresh();
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,6 +82,66 @@ public final class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         refresh();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        registerLiveRefreshListeners();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        unregisterLiveRefreshListeners();
+    }
+
+    private void registerLiveRefreshListeners() {
+        if (prefsListener == null) {
+            prefsListener = (sp, key) -> postRefresh();
+            Prefs.get(this).registerOnSharedPreferenceChangeListener(prefsListener);
+        }
+        if (uiNetCallback == null) {
+            ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+            if (cm != null) {
+                uiNetCallback = new ConnectivityManager.NetworkCallback() {
+                    @Override public void onAvailable(@NonNull Network n) { postRefresh(); }
+                    @Override public void onLost(@NonNull Network n) { postRefresh(); }
+                    @Override public void onCapabilitiesChanged(@NonNull Network n, @NonNull NetworkCapabilities c) { postRefresh(); }
+                    @Override public void onLinkPropertiesChanged(@NonNull Network n, @NonNull LinkProperties lp) { postRefresh(); }
+                };
+                try {
+                    cm.registerDefaultNetworkCallback(uiNetCallback);
+                } catch (RuntimeException e) {
+                    uiNetCallback = null;
+                }
+            }
+        }
+    }
+
+    private void unregisterLiveRefreshListeners() {
+        if (prefsListener != null) {
+            try {
+                Prefs.get(this).unregisterOnSharedPreferenceChangeListener(prefsListener);
+            } catch (RuntimeException ignored) {
+            }
+            prefsListener = null;
+        }
+        if (uiNetCallback != null) {
+            ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+            if (cm != null) {
+                try {
+                    cm.unregisterNetworkCallback(uiNetCallback);
+                } catch (RuntimeException ignored) {
+                }
+            }
+            uiNetCallback = null;
+        }
+    }
+
+    private void postRefresh() {
+        mainHandler.removeCallbacks(refreshIfActive);
+        mainHandler.postDelayed(refreshIfActive, 80L);
     }
 
     private void handleShortcutIntent(Intent intent) {
@@ -211,6 +285,7 @@ public final class MainActivity extends AppCompatActivity {
         SecureSettings.disableNow(this);
         Prefs.setLastEvaluation(this, "Saved home Wi-Fi cleared and ADB disabled");
         snack("Home Wi-Fi cleared");
+        AdbGuardWidget.refreshAll(this);
         refresh();
     }
 
@@ -223,7 +298,7 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void withLocalIp(Consumer<String> onIp) {
-        String ip = LocalIp.firstUsableIpv4();
+        String ip = LocalIp.firstUsableIpv4(this);
         if (ip == null) {
             snack(getString(R.string.pairing_no_ip));
             return;
@@ -232,7 +307,7 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void renderPairingCard() {
-        String ip = LocalIp.firstUsableIpv4();
+        String ip = LocalIp.firstUsableIpv4(this);
         if (ip == null) {
             binding.pairingIp.setText(R.string.pairing_no_ip);
             binding.pairingCommand.setText("—");
@@ -260,6 +335,7 @@ public final class MainActivity extends AppCompatActivity {
         binding.monitorEnable.setOnClickListener(v -> {
             SecureSettings.ApplyResult r = SecureSettings.enableNowIfAtHome(this);
             snack(getString(r.adbWifiWriteOk ? R.string.enable_succeeded : R.string.enable_refused));
+            MonitorService.applyCurrentState(this);
             refresh();
         });
 
@@ -271,6 +347,7 @@ public final class MainActivity extends AppCompatActivity {
         binding.monitorDisable.setOnClickListener(v -> {
             SecureSettings.disableNow(this);
             snack("Disable requested");
+            AdbGuardWidget.refreshAll(this);
             refresh();
         });
 

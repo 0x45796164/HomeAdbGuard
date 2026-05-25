@@ -6,10 +6,8 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.ServiceInfo;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -30,7 +28,6 @@ public final class MonitorService extends Service {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private ConnectivityManager cm;
     private ConnectivityManager.NetworkCallback callback;
-    private BroadcastReceiver wakeReceiver;
     private long offHomeSinceMs = 0L;
 
     /**
@@ -50,27 +47,18 @@ public final class MonitorService extends Service {
                 return;
             }
             applyCurrentState(MonitorService.this);
-            if (checkOffHomeGrace()) {
-                // stopSelf was called; do not re-schedule.
-                return;
-            }
+            if (offHomeGraceExpired()) return;
             handler.postDelayed(this, WATCHDOG_MS);
         }
     };
 
-    /**
-     * Returns true if the service has stopped itself because the device has
-     * been off-home longer than the grace window. Caller must then stop
-     * re-scheduling the watchdog.
-     */
-    private boolean checkOffHomeGrace() {
+    private boolean offHomeGraceExpired() {
         if (Prefs.isSnoozeActive(this)) {
             offHomeSinceMs = 0L;
             return false;
         }
         WifiState wifi = WifiState.current(this);
-        HomeMatcher.MatchResult match = HomeMatcher.evaluate(this, wifi);
-        if (match.atHome) {
+        if (HomeMatcher.evaluate(this, wifi).atHome) {
             offHomeSinceMs = 0L;
             return false;
         }
@@ -79,20 +67,14 @@ public final class MonitorService extends Service {
             offHomeSinceMs = now;
             return false;
         }
-        if (now - offHomeSinceMs < GRACE_MS) {
-            return false;
-        }
-        stopAndArmWatch();
-        return true;
-    }
+        if (now - offHomeSinceMs < GRACE_MS) return false;
 
-    private void stopAndArmWatch() {
         SecureSettings.setSafeState(this, false);
         NetworkWatch.arm(this);
         Prefs.appendDecision(this,
-                java.time.Instant.now()
-                        + " — FGS stopped after off-home grace; passive Wi-Fi watch armed");
+                Instant.now() + " — FGS stopped after off-home grace; passive Wi-Fi watch armed");
         stopSelf();
+        return true;
     }
 
     static boolean requestStart(Context context) {
@@ -107,7 +89,7 @@ public final class MonitorService extends Service {
                 SecureSettings.setSafeState(context, false);
                 NetworkWatch.arm(context);
                 Prefs.appendDecision(context,
-                        java.time.Instant.now()
+                        Instant.now()
                                 + " — Off-home; FGS not started, passive Wi-Fi watch armed ("
                                 + match.reason + ")");
                 return false;
@@ -131,9 +113,7 @@ public final class MonitorService extends Service {
     static void applyCurrentState(Context context) {
         WifiState wifi = WifiState.current(context);
         HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
-
-        ConnectivityManager localCm = context.getSystemService(ConnectivityManager.class);
-        Network active = activeWifiNetwork(localCm);
+        Network active = activeWifiNetwork(context.getSystemService(ConnectivityManager.class));
 
         // Same-Network carry-over: if we were already at home on this exact
         // Network handle, and the OS just stopped exposing Wi-Fi identity to us
@@ -144,10 +124,8 @@ public final class MonitorService extends Service {
                 match = new HomeMatcher.MatchResult(true,
                         "Wi-Fi identity restricted; trusting last-confirmed home (same Network handle)");
             }
-        }
-
-        // Update the cache only on a fully-verified at-home decision.
-        if (match.atHome && wifi.isUsable() && active != null) {
+        } else if (match.atHome && wifi.isUsable() && active != null) {
+            // Update the cache only on a fully-verified at-home decision.
             lastAtHomeNetwork = active;
         }
 
@@ -161,11 +139,10 @@ public final class MonitorService extends Service {
 
         SecureSettings.ApplyResult apply = SecureSettings.setSafeState(context, match.atHome);
         Instant now = Instant.now();
-        String evaluation = now + ": atHome=" + match.atHome
+        Prefs.setLastEvaluation(context, now + ": atHome=" + match.atHome
                 + ", reason=" + match.reason
                 + ", wifi=" + wifiSummary(wifi)
-                + ", apply=" + apply;
-        Prefs.setLastEvaluation(context, evaluation);
+                + ", apply=" + apply);
         Prefs.appendDecision(context, now + " " + (match.atHome ? "ENABLE" : "DISABLE")
                 + " — " + match.reason
                 + (wifi.ssid == null || wifi.ssid.isEmpty() ? "" : " (on " + wifi.ssid + ")"));
@@ -221,25 +198,9 @@ public final class MonitorService extends Service {
         );
         cm = getSystemService(ConnectivityManager.class);
         registerNetworkCallback();
-        registerWakeReceiver();
         applyCurrentState(this);
         handler.removeCallbacks(watchdog);
         handler.postDelayed(watchdog, WATCHDOG_MS);
-    }
-
-    private void registerWakeReceiver() {
-        if (wakeReceiver != null) return;
-        wakeReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context ctx, Intent intent) {
-                // Re-evaluate the moment Wi-Fi identity becomes readable again.
-                applyCurrentState(MonitorService.this);
-            }
-        };
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(Intent.ACTION_SCREEN_ON);
-        filter.addAction(Intent.ACTION_USER_PRESENT);
-        registerReceiver(wakeReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
     }
 
     @Override
@@ -260,13 +221,6 @@ public final class MonitorService extends Service {
                 cm.unregisterNetworkCallback(callback);
             } catch (RuntimeException ignored) {
             }
-        }
-        if (wakeReceiver != null) {
-            try {
-                unregisterReceiver(wakeReceiver);
-            } catch (RuntimeException ignored) {
-            }
-            wakeReceiver = null;
         }
         super.onDestroy();
     }

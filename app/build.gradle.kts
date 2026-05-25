@@ -14,12 +14,12 @@ val hasReleaseSigning = keystorePropertiesFile.exists()
 
 android {
     namespace = "app.homeadbguard"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "app.homeadbguard"
         minSdk = 34
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 8
         versionName = "0.7.0"
     }

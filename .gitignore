@@ -37,3 +37,4 @@ Thumbs.db
 
 # Tooling sandbox (Claude Code, etc.)
 .claude/
+.remember/

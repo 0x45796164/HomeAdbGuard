@@ -4,6 +4,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -67,20 +68,6 @@
         <receiver
             android:name=".ControlReceiver"
             android:exported="false" />
-
-        <receiver
-            android:name=".AutomationReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="app.homeadbguard.automation.ENABLE" />
-                <action android:name="app.homeadbguard.automation.DISABLE" />
-                <action android:name="app.homeadbguard.automation.RECHECK" />
-                <action android:name="app.homeadbguard.automation.SNOOZE_15" />
-                <action android:name="app.homeadbguard.automation.SNOOZE_30" />
-                <action android:name="app.homeadbguard.automation.SNOOZE_60" />
-                <action android:name="app.homeadbguard.automation.SNOOZE_CANCEL" />
-            </intent-filter>
-        </receiver>
 
         <receiver
             android:name=".AdbGuardWidget"

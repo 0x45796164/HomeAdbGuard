@@ -18,7 +18,7 @@ android {
 
     defaultConfig {
         applicationId = "app.homeadbguard"
-        minSdk = 36
+        minSdk = 34
         targetSdk = 36
         versionCode = 8
         versionName = "0.7.0"

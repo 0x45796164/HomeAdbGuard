@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.DrawableRes;
@@ -54,6 +55,7 @@ public final class MainActivity extends AppCompatActivity {
         wirePairingCard();
         wireMonitorCard();
         wireDiagnostics();
+        wireCollapsibleCards();
 
         binding.aboutCard.versionText.setText(getString(R.string.version_label, BuildConfig.VERSION_NAME));
 
@@ -313,17 +315,32 @@ public final class MainActivity extends AppCompatActivity {
     // ---------- Diagnostics ----------
 
     private void wireDiagnostics() {
-        binding.diagCard.diagHeader.setOnClickListener(v -> {
-            boolean expanded = binding.diagCard.diagContent.getVisibility() == View.VISIBLE;
-            binding.diagCard.diagContent.setVisibility(expanded ? View.GONE : View.VISIBLE);
-            binding.diagCard.diagChevron.setImageResource(expanded
-                    ? R.drawable.ic_radio_unchecked
-                    : R.drawable.ic_check_circle);
-        });
         binding.diagCard.diagPackage.setText(getPackageName());
         binding.diagCard.diagVerifyHint.setOnLongClickListener(v -> {
             copyToClipboard("verify commands", getString(R.string.diag_verify_hint));
             return true;
+        });
+    }
+
+    // ---------- Collapsible cards ----------
+
+    private void wireCollapsibleCards() {
+        wireCollapsible(binding.setupHeader, binding.setupContent, binding.setupChevron);
+        wireCollapsible(binding.currentNetworkHeader, binding.currentNetworkContent, binding.currentNetworkChevron);
+        wireCollapsible(binding.homeHeader, binding.homeContent, binding.homeChevron);
+        wireCollapsible(binding.pairingHeader, binding.pairingContent, binding.pairingChevron);
+        wireCollapsible(binding.monitorHeader, binding.monitorContent, binding.monitorChevron);
+        wireCollapsible(binding.diagCard.diagHeader, binding.diagCard.diagContent, binding.diagCard.diagChevron);
+        wireCollapsible(binding.aboutCard.aboutHeader, binding.aboutCard.aboutContent, binding.aboutCard.aboutChevron);
+    }
+
+    private void wireCollapsible(View header, View content, ImageView chevron) {
+        header.setOnClickListener(v -> {
+            boolean willCollapse = content.getVisibility() == View.VISIBLE;
+            content.setVisibility(willCollapse ? View.GONE : View.VISIBLE);
+            chevron.setImageResource(willCollapse
+                    ? R.drawable.ic_expand_more
+                    : R.drawable.ic_expand_less);
         });
     }
 

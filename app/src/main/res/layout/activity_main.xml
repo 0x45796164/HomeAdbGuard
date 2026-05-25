@@ -117,43 +117,84 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
+                    android:orientation="vertical">
 
-                    <TextView
+                    <LinearLayout
+                        android:id="@+id/setup_header"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:drawablePadding="12dp"
-                        app:drawableStartCompat="@drawable/ic_settings"
-                        app:drawableTint="?attr/colorOnSurfaceVariant"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:gravity="center_vertical"
-                        android:text="@string/setup_title"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                        android:textColor="?attr/colorOnSurface" />
+                        android:orientation="horizontal"
+                        android:padding="20dp">
 
-                    <TextView
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_settings"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/setup_title"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/setup_subtitle"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/setup_chevron"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_expand_less"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/setup_content"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginStart="36dp"
-                        android:text="@string/setup_subtitle"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:orientation="vertical"
+                        android:paddingHorizontal="20dp"
+                        android:paddingBottom="20dp">
 
-                    <!-- Step 1: Permissions -->
-                    <include android:layout_height="wrap_content" android:layout_width="match_parent"
-                        android:id="@+id/setup_step_permissions"
-                        layout="@layout/item_setup_step" />
+                        <!-- Step 1: Permissions -->
+                        <include android:layout_height="wrap_content" android:layout_width="match_parent"
+                            android:id="@+id/setup_step_permissions"
+                            layout="@layout/item_setup_step" />
 
-                    <!-- Step 2: ADB grant -->
-                    <include android:layout_height="wrap_content" android:layout_width="match_parent"
-                        android:id="@+id/setup_step_secure"
-                        layout="@layout/item_setup_step" />
+                        <!-- Step 2: ADB grant -->
+                        <include android:layout_height="wrap_content" android:layout_width="match_parent"
+                            android:id="@+id/setup_step_secure"
+                            layout="@layout/item_setup_step" />
 
-                    <!-- Step 3: Save Wi-Fi -->
-                    <include android:layout_height="wrap_content" android:layout_width="match_parent"
-                        android:id="@+id/setup_step_home"
-                        layout="@layout/item_setup_step" />
+                        <!-- Step 3: Save Wi-Fi -->
+                        <include android:layout_height="wrap_content" android:layout_width="match_parent"
+                            android:id="@+id/setup_step_home"
+                            layout="@layout/item_setup_step" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
@@ -172,64 +213,105 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
+                    android:orientation="vertical">
 
-                    <TextView
+                    <LinearLayout
+                        android:id="@+id/current_network_header"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:drawablePadding="12dp"
-                        app:drawableStartCompat="@drawable/ic_wifi"
-                        app:drawableTint="?attr/colorOnSurfaceVariant"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:gravity="center_vertical"
-                        android:text="@string/current_network_title"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                        android:textColor="?attr/colorOnSurface" />
+                        android:orientation="horizontal"
+                        android:padding="20dp">
 
-                    <TextView
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_wifi"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/current_network_title"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/current_network_subtitle"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/current_network_chevron"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_expand_less"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/current_network_content"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginStart="36dp"
-                        android:text="@string/current_network_subtitle"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:orientation="vertical"
+                        android:paddingHorizontal="20dp"
+                        android:paddingBottom="20dp">
 
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="16dp"
-                        android:background="?attr/colorOutlineVariant" />
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginBottom="16dp"
+                            android:background="?attr/colorOutlineVariant" />
 
-                    <TextView android:layout_height="wrap_content" android:layout_width="wrap_content"
-                        android:text="@string/current_network_ssid"
-                        style="@style/Label" />
+                        <TextView android:layout_height="wrap_content" android:layout_width="wrap_content"
+                            android:text="@string/current_network_ssid"
+                            style="@style/Label" />
 
-                    <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
-                        android:id="@+id/current_ssid"
-                        style="@style/Value"
-                        tools:text="MyHomeNetwork" />
+                        <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
+                            android:id="@+id/current_ssid"
+                            style="@style/Value"
+                            tools:text="MyHomeNetwork" />
 
-                    <TextView android:layout_height="wrap_content" android:layout_width="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="@string/current_network_bssid"
-                        style="@style/Label" />
+                        <TextView android:layout_height="wrap_content" android:layout_width="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/current_network_bssid"
+                            style="@style/Label" />
 
-                    <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
-                        android:id="@+id/current_bssid"
-                        style="@style/Value"
-                        android:fontFamily="monospace"
-                        tools:text="aa:bb:cc:dd:ee:ff" />
+                        <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
+                            android:id="@+id/current_bssid"
+                            style="@style/Value"
+                            android:fontFamily="monospace"
+                            tools:text="aa:bb:cc:dd:ee:ff" />
 
-                    <TextView android:layout_height="wrap_content" android:layout_width="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="@string/current_network_decision"
-                        style="@style/Label" />
+                        <TextView android:layout_height="wrap_content" android:layout_width="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="@string/current_network_decision"
+                            style="@style/Label" />
 
-                    <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
-                        android:id="@+id/current_decision"
-                        style="@style/Value"
-                        tools:text="SSID and BSSID match saved home Wi-Fi" />
+                        <TextView android:layout_height="wrap_content" android:layout_width="match_parent"
+                            android:id="@+id/current_decision"
+                            style="@style/Value"
+                            tools:text="SSID and BSSID match saved home Wi-Fi" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 
@@ -248,37 +330,76 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
+                    android:orientation="vertical">
 
-                    <TextView
+                    <LinearLayout
+                        android:id="@+id/home_header"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:drawablePadding="12dp"
-                        app:drawableStartCompat="@drawable/ic_home"
-                        app:drawableTint="?attr/colorOnSurfaceVariant"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:gravity="center_vertical"
-                        android:text="@string/home_title"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                        android:textColor="?attr/colorOnSurface" />
+                        android:orientation="horizontal"
+                        android:padding="20dp">
 
-                    <TextView
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_home"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/home_title"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/home_subtitle"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/home_chevron"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_expand_less"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/home_content"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginStart="36dp"
-                        android:text="@string/home_subtitle"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:orientation="vertical"
+                        android:paddingHorizontal="20dp"
+                        android:paddingBottom="20dp">
 
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="16dp"
-                        android:background="?attr/colorOutlineVariant" />
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginBottom="16dp"
+                            android:background="?attr/colorOutlineVariant" />
 
-                    <TextView
-                        android:id="@+id/home_empty"
+                        <TextView
+                            android:id="@+id/home_empty"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/home_empty_state"
@@ -381,6 +502,8 @@
 
                     </LinearLayout>
 
+                    </LinearLayout>
+
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
@@ -398,92 +521,133 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:drawablePadding="12dp"
-                        app:drawableStartCompat="@drawable/ic_terminal"
-                        app:drawableTint="?attr/colorOnSurfaceVariant"
-                        android:gravity="center_vertical"
-                        android:text="@string/pairing_title"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                        android:textColor="?attr/colorOnSurface" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginStart="36dp"
-                        android:text="@string/pairing_subtitle"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="16dp"
-                        android:background="?attr/colorOutlineVariant" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/pairing_ip_label"
-                        style="@style/Label" />
-
-                    <TextView
-                        android:id="@+id/pairing_ip"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:fontFamily="monospace"
-                        android:textIsSelectable="true"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
-                        android:textColor="?attr/colorOnSurface"
-                        tools:text="192.168.1.42" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="@string/pairing_command_label"
-                        style="@style/Label" />
-
-                    <TextView
-                        android:id="@+id/pairing_command"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:background="?attr/colorSurfaceContainerHigh"
-                        android:fontFamily="monospace"
-                        android:padding="12dp"
-                        android:textIsSelectable="true"
-                        android:textAppearance="@style/TextAppearance.Material3.BodySmall"
-                        android:textColor="?attr/colorOnSurface"
-                        tools:text="adb connect 192.168.1.42:PORT" />
+                    android:orientation="vertical">
 
                     <LinearLayout
+                        android:id="@+id/pairing_header"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:orientation="horizontal">
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="20dp">
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/pairing_copy_ip"
-                            style="@style/Widget.Material3.Button.TonalButton"
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_terminal"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/pairing_title"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/pairing_subtitle"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/pairing_chevron"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_expand_less"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/pairing_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="20dp"
+                        android:paddingBottom="20dp">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginBottom="16dp"
+                            android:background="?attr/colorOutlineVariant" />
+
+                        <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:text="@string/pairing_copy_ip" />
+                            android:text="@string/pairing_ip_label"
+                            style="@style/Label" />
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/pairing_copy_command"
-                            style="@style/Widget.Material3.Button.TextButton"
+                        <TextView
+                            android:id="@+id/pairing_ip"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:fontFamily="monospace"
+                            android:textIsSelectable="true"
+                            android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+                            android:textColor="?attr/colorOnSurface"
+                            tools:text="192.168.1.42" />
+
+                        <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/pairing_copy_command" />
+                            android:layout_marginTop="12dp"
+                            android:text="@string/pairing_command_label"
+                            style="@style/Label" />
+
+                        <TextView
+                            android:id="@+id/pairing_command"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:background="?attr/colorSurfaceContainerHigh"
+                            android:fontFamily="monospace"
+                            android:padding="12dp"
+                            android:textIsSelectable="true"
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                            android:textColor="?attr/colorOnSurface"
+                            tools:text="adb connect 192.168.1.42:PORT" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/pairing_copy_ip"
+                                style="@style/Widget.Material3.Button.TonalButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
+                                android:text="@string/pairing_copy_ip" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/pairing_copy_command"
+                                style="@style/Widget.Material3.Button.TextButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/pairing_copy_command" />
+
+                        </LinearLayout>
 
                     </LinearLayout>
 
@@ -504,40 +668,79 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:drawablePadding="12dp"
-                        app:drawableStartCompat="@drawable/ic_tune"
-                        app:drawableTint="?attr/colorOnSurfaceVariant"
-                        android:gravity="center_vertical"
-                        android:text="@string/monitor_title"
-                        android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
-                        android:textColor="?attr/colorOnSurface" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:layout_marginStart="36dp"
-                        android:text="@string/monitor_subtitle"
-                        android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginVertical="16dp"
-                        android:background="?attr/colorOutlineVariant" />
+                    android:orientation="vertical">
 
                     <LinearLayout
+                        android:id="@+id/monitor_header"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:padding="20dp">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_tune"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="@string/monitor_title"
+                                android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                                android:textColor="?attr/colorOnSurface" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="@string/monitor_subtitle"
+                                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                                android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/monitor_chevron"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_expand_less"
+                            app:tint="?attr/colorOnSurfaceVariant"
+                            android:contentDescription="@null" />
+
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/monitor_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="20dp"
+                        android:paddingBottom="20dp">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginBottom="16dp"
+                            android:background="?attr/colorOutlineVariant" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -672,6 +875,8 @@
                         android:layout_marginTop="4dp"
                         android:text="@string/snooze_cancel"
                         android:visibility="gone" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
 

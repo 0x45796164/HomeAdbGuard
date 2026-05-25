@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -166,7 +165,7 @@ final class Prefs {
         return String.join("|", items);
     }
 
-    static String safe(String s) {
+    private static String safe(String s) {
         return s == null ? "" : s;
     }
 
@@ -175,10 +174,5 @@ final class Prefs {
         String normalized = bssid.trim().toLowerCase(Locale.ROOT);
         if (normalized.equals("02:00:00:00:00:00")) return "";
         return normalized;
-    }
-
-    static String bssidDisplay(Set<String> bssids) {
-        if (bssids == null || bssids.isEmpty()) return "-";
-        return Arrays.toString(bssids.toArray(new String[0]));
     }
 }

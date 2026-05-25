@@ -32,6 +32,7 @@ public final class ControlReceiver extends BroadcastReceiver {
             Prefs.setMonitoring(context, false);
             SecureSettings.disableNow(context);
             context.stopService(new Intent(context, MonitorService.class));
+            NetworkWatch.disarm(context);
             Prefs.setLastEvaluation(context, "Monitoring stopped from notification");
         }
     }

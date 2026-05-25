@@ -21,6 +21,7 @@ final class Prefs {
     static final String KEY_LAST_APPLY_RESULT = "last_apply_result";
     static final String KEY_DECISION_HISTORY = "decision_history";
     static final String KEY_SNOOZE_UNTIL = "snooze_until_millis";
+    static final String KEY_NETWORK_WATCH_ARMED = "network_watch_armed";
 
     private static final int HISTORY_MAX = 10;
     private static final String HISTORY_SEP = "\n";
@@ -119,6 +120,14 @@ final class Prefs {
         long until = snoozeUntil(context);
         long now = System.currentTimeMillis();
         return until > now ? (until - now) : 0L;
+    }
+
+    static boolean networkWatchArmed(Context context) {
+        return get(context).getBoolean(KEY_NETWORK_WATCH_ARMED, false);
+    }
+
+    static void setNetworkWatchArmed(Context context, boolean armed) {
+        get(context).edit().putBoolean(KEY_NETWORK_WATCH_ARMED, armed).apply();
     }
 
     static List<String> decisionHistory(Context context) {

@@ -25,11 +25,13 @@ public final class MonitorService extends Service {
     static final String CHANNEL_ID = "monitor";
     static final int NOTIFICATION_ID = 42;
     private static final long WATCHDOG_MS = 30_000L;
+    private static final long GRACE_MS = 60_000L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private ConnectivityManager cm;
     private ConnectivityManager.NetworkCallback callback;
     private BroadcastReceiver wakeReceiver;
+    private long offHomeSinceMs = 0L;
 
     /**
      * Last Wi-Fi {@link Network} we positively confirmed as the user's home network.
@@ -48,11 +50,70 @@ public final class MonitorService extends Service {
                 return;
             }
             applyCurrentState(MonitorService.this);
+            if (checkOffHomeGrace()) {
+                // stopSelf was called; do not re-schedule.
+                return;
+            }
             handler.postDelayed(this, WATCHDOG_MS);
         }
     };
 
+    /**
+     * Returns true if the service has stopped itself because the device has
+     * been off-home longer than the grace window. Caller must then stop
+     * re-scheduling the watchdog.
+     */
+    private boolean checkOffHomeGrace() {
+        if (Prefs.isSnoozeActive(this)) {
+            offHomeSinceMs = 0L;
+            return false;
+        }
+        WifiState wifi = WifiState.current(this);
+        HomeMatcher.MatchResult match = HomeMatcher.evaluate(this, wifi);
+        if (match.atHome) {
+            offHomeSinceMs = 0L;
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        if (offHomeSinceMs == 0L) {
+            offHomeSinceMs = now;
+            return false;
+        }
+        if (now - offHomeSinceMs < GRACE_MS) {
+            return false;
+        }
+        stopAndArmWatch();
+        return true;
+    }
+
+    private void stopAndArmWatch() {
+        SecureSettings.setSafeState(this, false);
+        NetworkWatch.arm(this);
+        Prefs.appendDecision(this,
+                java.time.Instant.now()
+                        + " — FGS stopped after off-home grace; passive Wi-Fi watch armed");
+        stopSelf();
+    }
+
     static boolean requestStart(Context context) {
+        if (!Prefs.monitoring(context)) return false;
+
+        // Snooze keeps the service alive regardless of network because the
+        // user explicitly opted in while at home. Skip the at-home gate.
+        if (!Prefs.isSnoozeActive(context)) {
+            WifiState wifi = WifiState.current(context);
+            HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
+            if (!match.atHome) {
+                SecureSettings.setSafeState(context, false);
+                NetworkWatch.arm(context);
+                Prefs.appendDecision(context,
+                        java.time.Instant.now()
+                                + " — Off-home; FGS not started, passive Wi-Fi watch armed ("
+                                + match.reason + ")");
+                return false;
+            }
+        }
+
         try {
             context.startForegroundService(new Intent(context, MonitorService.class));
             return true;
@@ -148,6 +209,9 @@ public final class MonitorService extends Service {
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
+        // The FGS is the active monitor while it is running; the passive
+        // Wi-Fi watch (if armed) is redundant. Stop it.
+        NetworkWatch.disarm(this);
         WifiState wifi = WifiState.current(this);
         HomeMatcher.MatchResult match = HomeMatcher.evaluate(this, wifi);
         startForeground(

@@ -13,9 +13,9 @@ public final class BootReceiver extends BroadcastReceiver {
             return;
         }
         if (!Prefs.monitoring(context)) return;
-        boolean started = MonitorService.requestStart(context);
-        if (!started) {
-            SecureSettings.disableNow(context);
-        }
+        // requestStart now gates on at-home; if we are off-home it arms
+        // the passive Wi-Fi watch instead of starting the FGS, and writes
+        // safe state defensively. Either path leaves the device safe.
+        MonitorService.requestStart(context);
     }
 }

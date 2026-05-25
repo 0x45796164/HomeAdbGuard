@@ -252,6 +252,7 @@ public final class MainActivity extends AppCompatActivity {
             } else {
                 SecureSettings.disableNow(this);
                 stopService(new Intent(this, MonitorService.class));
+                NetworkWatch.disarm(this);
                 Prefs.setLastEvaluation(this, "Monitoring stopped manually");
                 snack("Monitoring stopped");
             }
@@ -283,6 +284,7 @@ public final class MainActivity extends AppCompatActivity {
             Prefs.setMonitoring(this, false);
             SecureSettings.disableNow(this);
             stopService(new Intent(this, MonitorService.class));
+            NetworkWatch.disarm(this);
             Prefs.setLastEvaluation(this, "Monitoring stopped manually");
             snack("Stopped");
             refresh();

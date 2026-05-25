@@ -15,6 +15,7 @@ import android.widget.ImageView;
 import androidx.annotation.ColorInt;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
@@ -24,6 +25,7 @@ import com.google.android.material.snackbar.Snackbar;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import app.homeadbguard.databinding.ActivityMainBinding;
 import app.homeadbguard.databinding.ItemSetupStepBinding;
@@ -36,19 +38,12 @@ public final class MainActivity extends AppCompatActivity {
     static final String ACTION_RECHECK_NOW = "app.homeadbguard.action.RECHECK_NOW";
 
     private ActivityMainBinding binding;
-    private ItemSetupStepBinding stepPermissions;
-    private ItemSetupStepBinding stepSecure;
-    private ItemSetupStepBinding stepHome;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
-        stepPermissions = ItemSetupStepBinding.bind(binding.setupStepPermissions.getRoot());
-        stepSecure = ItemSetupStepBinding.bind(binding.setupStepSecure.getRoot());
-        stepHome = ItemSetupStepBinding.bind(binding.setupStepHome.getRoot());
 
         wireSetupSteps();
         wireHomeCard();
@@ -80,9 +75,7 @@ public final class MainActivity extends AppCompatActivity {
         switch (intent.getAction()) {
             case ACTION_ENABLE_NOW: {
                 SecureSettings.ApplyResult r = SecureSettings.enableNowIfAtHome(this);
-                snack(r.adbWifiWriteOk
-                        ? getString(R.string.enable_succeeded)
-                        : getString(R.string.enable_refused));
+                snack(getString(r.adbWifiWriteOk ? R.string.enable_succeeded : R.string.enable_refused));
                 break;
             }
             case ACTION_DISABLE_NOW: {
@@ -110,24 +103,35 @@ public final class MainActivity extends AppCompatActivity {
     // ---------- Setup steps ----------
 
     private void wireSetupSteps() {
-        stepPermissions.stepTitle.setText(R.string.setup_step_permissions);
-        stepPermissions.stepDesc.setText(R.string.setup_step_permissions_desc);
-        stepPermissions.stepAction.setText(R.string.setup_action_permissions);
-        stepPermissions.stepAction.setOnClickListener(v -> requestRuntimePermissions());
+        bindSetupStep(binding.setupStepPermissions,
+                R.string.setup_step_permissions,
+                R.string.setup_step_permissions_desc,
+                R.string.setup_action_permissions,
+                v -> requestRuntimePermissions());
 
-        stepSecure.stepTitle.setText(R.string.setup_step_secure_settings);
-        stepSecure.stepDesc.setText(R.string.setup_step_secure_settings_desc);
-        stepSecure.stepCommandCard.setVisibility(View.VISIBLE);
-        stepSecure.stepCommandText.setText(R.string.setup_command_secure_settings);
-        stepSecure.stepCommandCopy.setOnClickListener(v ->
+        bindSetupStep(binding.setupStepSecure,
+                R.string.setup_step_secure_settings,
+                R.string.setup_step_secure_settings_desc,
+                R.string.setup_action_open_settings,
+                v -> openAppDetails());
+        binding.setupStepSecure.stepCommandCard.setVisibility(View.VISIBLE);
+        binding.setupStepSecure.stepCommandText.setText(R.string.setup_command_secure_settings);
+        binding.setupStepSecure.stepCommandCopy.setOnClickListener(v ->
                 copyToClipboard("adb command", getString(R.string.setup_command_secure_settings)));
-        stepSecure.stepAction.setText(R.string.setup_action_open_settings);
-        stepSecure.stepAction.setOnClickListener(v -> openAppDetails());
 
-        stepHome.stepTitle.setText(R.string.setup_step_save_home);
-        stepHome.stepDesc.setText(R.string.setup_step_save_home_desc);
-        stepHome.stepAction.setText(R.string.setup_action_save_home);
-        stepHome.stepAction.setOnClickListener(v -> saveCurrentAsHome());
+        bindSetupStep(binding.setupStepHome,
+                R.string.setup_step_save_home,
+                R.string.setup_step_save_home_desc,
+                R.string.setup_action_save_home,
+                v -> saveCurrentAsHome());
+    }
+
+    private void bindSetupStep(ItemSetupStepBinding step, @StringRes int title, @StringRes int desc,
+                               @StringRes int action, View.OnClickListener onAction) {
+        step.stepTitle.setText(title);
+        step.stepDesc.setText(desc);
+        step.stepAction.setText(action);
+        step.stepAction.setOnClickListener(onAction);
     }
 
     private void requestRuntimePermissions() {
@@ -213,22 +217,18 @@ public final class MainActivity extends AppCompatActivity {
     // ---------- Pairing card ----------
 
     private void wirePairingCard() {
-        binding.pairingCopyIp.setOnClickListener(v -> {
-            String ip = LocalIp.firstUsableIpv4();
-            if (ip == null) {
-                snack(getString(R.string.pairing_no_ip));
-                return;
-            }
-            copyToClipboard("local IP", ip);
-        });
-        binding.pairingCopyCommand.setOnClickListener(v -> {
-            String ip = LocalIp.firstUsableIpv4();
-            if (ip == null) {
-                snack(getString(R.string.pairing_no_ip));
-                return;
-            }
-            copyToClipboard("adb connect command", getString(R.string.pairing_command_template, ip));
-        });
+        binding.pairingCopyIp.setOnClickListener(v -> withLocalIp(ip -> copyToClipboard("local IP", ip)));
+        binding.pairingCopyCommand.setOnClickListener(v -> withLocalIp(ip ->
+                copyToClipboard("adb connect command", getString(R.string.pairing_command_template, ip))));
+    }
+
+    private void withLocalIp(Consumer<String> onIp) {
+        String ip = LocalIp.firstUsableIpv4();
+        if (ip == null) {
+            snack(getString(R.string.pairing_no_ip));
+            return;
+        }
+        onIp.accept(ip);
     }
 
     private void renderPairingCard() {
@@ -251,23 +251,15 @@ public final class MainActivity extends AppCompatActivity {
             if (checked) {
                 MonitorService.requestStart(this);
                 snack("Monitoring started");
+                refresh();
             } else {
-                SecureSettings.disableNow(this);
-                stopService(new Intent(this, MonitorService.class));
-                NetworkWatch.disarm(this);
-                Prefs.setLastEvaluation(this, "Monitoring stopped manually");
-                snack("Monitoring stopped");
+                stopMonitoring("Monitoring stopped");
             }
-            refresh();
         });
 
         binding.monitorEnable.setOnClickListener(v -> {
             SecureSettings.ApplyResult r = SecureSettings.enableNowIfAtHome(this);
-            if (r.adbWifiWriteOk) {
-                snack(getString(R.string.enable_succeeded));
-            } else {
-                snack(getString(R.string.enable_refused));
-            }
+            snack(getString(r.adbWifiWriteOk ? R.string.enable_succeeded : R.string.enable_refused));
             refresh();
         });
 
@@ -282,15 +274,7 @@ public final class MainActivity extends AppCompatActivity {
             refresh();
         });
 
-        binding.monitorStop.setOnClickListener(v -> {
-            Prefs.setMonitoring(this, false);
-            SecureSettings.disableNow(this);
-            stopService(new Intent(this, MonitorService.class));
-            NetworkWatch.disarm(this);
-            Prefs.setLastEvaluation(this, "Monitoring stopped manually");
-            snack("Stopped");
-            refresh();
-        });
+        binding.monitorStop.setOnClickListener(v -> stopMonitoring("Stopped"));
 
         binding.snooze15.setOnClickListener(v -> armSnooze(15));
         binding.snooze30.setOnClickListener(v -> armSnooze(30));
@@ -300,6 +284,16 @@ public final class MainActivity extends AppCompatActivity {
             snack(getString(R.string.snooze_cancel));
             refresh();
         });
+    }
+
+    private void stopMonitoring(String snackMsg) {
+        Prefs.setMonitoring(this, false);
+        SecureSettings.disableNow(this);
+        stopService(new Intent(this, MonitorService.class));
+        NetworkWatch.disarm(this);
+        Prefs.setLastEvaluation(this, "Monitoring stopped manually");
+        snack(snackMsg);
+        refresh();
     }
 
     private void armSnooze(int minutes) {
@@ -366,21 +360,15 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void renderStatusHero(boolean configured, boolean monitoring, HomeMatcher.MatchResult match) {
+        @StringRes int titleRes;
+        @StringRes int subtitleRes;
+        @DrawableRes int icon;
         @ColorInt int container;
         @ColorInt int onContainer;
-        @DrawableRes int icon;
-        int titleRes;
-        int subtitleRes;
 
-        if (!configured) {
-            titleRes = R.string.status_setup_title;
-            subtitleRes = R.string.status_setup_subtitle;
-            icon = R.drawable.ic_warning;
-            container = ContextCompat.getColor(this, R.color.status_setup_container);
-            onContainer = ContextCompat.getColor(this, R.color.status_setup);
-        } else if (!monitoring) {
-            titleRes = R.string.status_idle_title;
-            subtitleRes = R.string.status_idle_subtitle;
+        if (!configured || !monitoring) {
+            titleRes = configured ? R.string.status_idle_title : R.string.status_setup_title;
+            subtitleRes = configured ? R.string.status_idle_subtitle : R.string.status_setup_subtitle;
             icon = R.drawable.ic_warning;
             container = ContextCompat.getColor(this, R.color.status_setup_container);
             onContainer = ContextCompat.getColor(this, R.color.status_setup);
@@ -409,9 +397,9 @@ public final class MainActivity extends AppCompatActivity {
 
     private void renderSetup(boolean permsOk, boolean secureOk, boolean homeSaved, boolean fullyConfigured) {
         binding.setupCard.setVisibility(fullyConfigured ? View.GONE : View.VISIBLE);
-        markStep(stepPermissions, permsOk);
-        markStep(stepSecure, secureOk);
-        markStep(stepHome, homeSaved);
+        markStep(binding.setupStepPermissions, permsOk);
+        markStep(binding.setupStepSecure, secureOk);
+        markStep(binding.setupStepHome, homeSaved);
     }
 
     private void markStep(ItemSetupStepBinding step, boolean done) {
@@ -493,14 +481,12 @@ public final class MainActivity extends AppCompatActivity {
         binding.diagCard.diagPermNearby.setText(grantText(Manifest.permission.NEARBY_WIFI_DEVICES));
         binding.diagCard.diagPermNotif.setText(grantText(Manifest.permission.POST_NOTIFICATIONS));
         binding.diagCard.diagPermSecure.setText(grantText(Manifest.permission.WRITE_SECURE_SETTINGS));
-        binding.diagCard.diagLocationToggle.setText(wifi.locationEnabled
-                ? getString(R.string.enabled)
-                : getString(R.string.disabled));
+        binding.diagCard.diagLocationToggle.setText(getString(wifi.locationEnabled ? R.string.enabled : R.string.disabled));
         binding.diagCard.diagWifiSource.setText(valueOrDash(wifi.source));
         binding.diagCard.diagLastEval.setText(valueOrDash(Prefs.lastEvaluation(this)));
         binding.diagCard.diagLastApply.setText(valueOrDash(Prefs.lastApplyResult(this)));
 
-        java.util.List<String> history = Prefs.decisionHistory(this);
+        List<String> history = Prefs.decisionHistory(this);
         binding.diagCard.diagHistory.setText(history.isEmpty()
                 ? getString(R.string.diag_history_empty)
                 : String.join("\n", history));
@@ -515,9 +501,9 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private String grantText(String permission) {
-        return checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
-                ? getString(R.string.granted)
-                : getString(R.string.not_granted);
+        return getString(checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+                ? R.string.granted
+                : R.string.not_granted);
     }
 
     private String valueOrDash(String s) {

@@ -20,11 +20,8 @@ final class SecureSettings {
     }
 
     static ApplyResult setSafeState(Context context, boolean atHome) {
-        if (!hasWriteSecureSettings(context)) {
-            ApplyResult result = new ApplyResult(false, false, false, "WRITE_SECURE_SETTINGS is not granted");
-            Prefs.setLastApplyResult(context, result.toString());
-            return result;
-        }
+        ApplyResult denied = requirePermission(context);
+        if (denied != null) return denied;
 
         boolean devOk;
         boolean adbOk;
@@ -36,9 +33,7 @@ final class SecureSettings {
             devOk = putGlobalInt(context, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0);
         }
 
-        ApplyResult result = new ApplyResult(true, devOk, adbOk, atHome ? "requested enable" : "requested disable");
-        Prefs.setLastApplyResult(context, result.toString());
-        return result;
+        return record(context, new ApplyResult(true, devOk, adbOk, atHome ? "requested enable" : "requested disable"));
     }
 
     /**
@@ -49,18 +44,13 @@ final class SecureSettings {
      * listening port. A plain rewrite of `1` over an already-`1` value is sometimes ignored.
      */
     static ApplyResult enableNowIfAtHome(Context context) {
-        if (!hasWriteSecureSettings(context)) {
-            ApplyResult result = new ApplyResult(false, false, false, "WRITE_SECURE_SETTINGS is not granted");
-            Prefs.setLastApplyResult(context, result.toString());
-            return result;
-        }
+        ApplyResult denied = requirePermission(context);
+        if (denied != null) return denied;
 
         WifiState wifi = WifiState.current(context);
         HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
         if (!match.atHome) {
-            ApplyResult result = new ApplyResult(true, false, false, "refused: " + match.reason);
-            Prefs.setLastApplyResult(context, result.toString());
-            return result;
+            return record(context, new ApplyResult(true, false, false, "refused: " + match.reason));
         }
 
         boolean devOk = putGlobalInt(context, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 1);
@@ -70,20 +60,24 @@ final class SecureSettings {
                 ADB_TOGGLE_DELAY_MS
         );
 
-        ApplyResult result = new ApplyResult(true, devOk, true, "force enable (toggled)");
-        Prefs.setLastApplyResult(context, result.toString());
-        return result;
+        return record(context, new ApplyResult(true, devOk, true, "force enable (toggled)"));
     }
 
     static ApplyResult disableNow(Context context) {
-        if (!hasWriteSecureSettings(context)) {
-            ApplyResult result = new ApplyResult(false, false, false, "WRITE_SECURE_SETTINGS is not granted");
-            Prefs.setLastApplyResult(context, result.toString());
-            return result;
-        }
+        ApplyResult denied = requirePermission(context);
+        if (denied != null) return denied;
+
         boolean adbOk = putGlobalInt(context, ADB_WIFI_ENABLED, 0);
         boolean devOk = putGlobalInt(context, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0);
-        ApplyResult result = new ApplyResult(true, devOk, adbOk, "manual disable");
+        return record(context, new ApplyResult(true, devOk, adbOk, "manual disable"));
+    }
+
+    private static ApplyResult requirePermission(Context context) {
+        if (hasWriteSecureSettings(context)) return null;
+        return record(context, new ApplyResult(false, false, false, "WRITE_SECURE_SETTINGS is not granted"));
+    }
+
+    private static ApplyResult record(Context context, ApplyResult result) {
         Prefs.setLastApplyResult(context, result.toString());
         return result;
     }

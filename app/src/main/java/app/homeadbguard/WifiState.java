@@ -52,39 +52,66 @@ final class WifiState {
                 == PackageManager.PERMISSION_GRANTED;
 
         ConnectivityManager cm = context.getSystemService(ConnectivityManager.class);
-        if (cm != null) {
-            boolean sawWifi = false;
-            try {
-                for (Network network : cm.getAllNetworks()) {
-                    NetworkCapabilities caps = cm.getNetworkCapabilities(network);
-                    if (caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                        sawWifi = true;
-                        WifiState state = fromCapabilities(caps, "ConnectivityManager#getAllNetworks", locEnabled, fine, nearby);
-                        if (state.isUsable()) return state;
-                    }
-                }
-            } catch (SecurityException ignored) {
-            }
+        boolean sawWifi = false;
 
-            try {
-                Network active = cm.getActiveNetwork();
-                NetworkCapabilities caps = active == null ? null : cm.getNetworkCapabilities(active);
-                WifiState state = fromCapabilities(caps, "ConnectivityManager#getActiveNetwork", locEnabled, fine, nearby);
-                if (state.isUsable()) return state;
-                if (state.wifiTransportSeen) sawWifi = true;
-            } catch (SecurityException ignored) {
-            }
+        WifiState fromAll = fromAllNetworks(cm, locEnabled, fine, nearby);
+        if (fromAll.isUsable()) return fromAll;
+        if (fromAll.wifiTransportSeen) sawWifi = true;
 
-            WifiState fallback = fromWifiManager(context, locEnabled, fine, nearby);
-            if (fallback.isUsable()) return fallback;
-            if (fallback.wifiTransportSeen || sawWifi) {
-                return new WifiState(fallback.ssid, fallback.bssid, "redacted-or-unusable-wifi", true, locEnabled, fine, nearby);
-            }
+        WifiState fromActive = fromActiveNetwork(cm, locEnabled, fine, nearby);
+        if (fromActive.isUsable()) return fromActive;
+        if (fromActive.wifiTransportSeen) sawWifi = true;
+
+        WifiState fromManager = fromWifiManager(context, locEnabled, fine, nearby);
+        if (fromManager.isUsable()) return fromManager;
+        if (fromManager.wifiTransportSeen) sawWifi = true;
+
+        if (sawWifi) {
+            return new WifiState("", "", "redacted-or-unusable-wifi", true, locEnabled, fine, nearby);
         }
-
-        WifiState fallback = fromWifiManager(context, locEnabled, fine, nearby);
-        if (fallback.isUsable()) return fallback;
         return new WifiState("", "", "none", false, locEnabled, fine, nearby);
+    }
+
+    private static WifiState fromAllNetworks(
+            ConnectivityManager cm,
+            boolean locEnabled,
+            boolean fine,
+            boolean nearby
+    ) {
+        if (cm == null) {
+            return new WifiState("", "", "ConnectivityManager unavailable", false, locEnabled, fine, nearby);
+        }
+        try {
+            boolean sawWifi = false;
+            for (Network network : cm.getAllNetworks()) {
+                NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+                if (caps == null || !caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) continue;
+                sawWifi = true;
+                WifiState state = fromCapabilities(caps, "ConnectivityManager#getAllNetworks", locEnabled, fine, nearby);
+                if (state.isUsable()) return state;
+            }
+            return new WifiState("", "", "ConnectivityManager#getAllNetworks", sawWifi, locEnabled, fine, nearby);
+        } catch (SecurityException ignored) {
+            return new WifiState("", "", "ConnectivityManager#getAllNetworks SecurityException", false, locEnabled, fine, nearby);
+        }
+    }
+
+    private static WifiState fromActiveNetwork(
+            ConnectivityManager cm,
+            boolean locEnabled,
+            boolean fine,
+            boolean nearby
+    ) {
+        if (cm == null) {
+            return new WifiState("", "", "ConnectivityManager unavailable", false, locEnabled, fine, nearby);
+        }
+        try {
+            Network active = cm.getActiveNetwork();
+            NetworkCapabilities caps = active == null ? null : cm.getNetworkCapabilities(active);
+            return fromCapabilities(caps, "ConnectivityManager#getActiveNetwork", locEnabled, fine, nearby);
+        } catch (SecurityException ignored) {
+            return new WifiState("", "", "ConnectivityManager#getActiveNetwork SecurityException", false, locEnabled, fine, nearby);
+        }
     }
 
     static WifiState fromCapabilities(

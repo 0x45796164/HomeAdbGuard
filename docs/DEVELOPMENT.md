@@ -92,19 +92,28 @@ There should be no `android.permission.INTERNET` entry.
 ```
 app/src/main/AndroidManifest.xml
 app/src/main/java/app/homeadbguard/
-    App.java                 — Application subclass, notification channel setup
-    MainActivity.java        — single-activity UI
-    MonitorService.java      — foreground service, NetworkCallback + watchdog
-    MonitorTileService.java  — Quick Settings tile
-    ControlReceiver.java     — internal broadcast handler for notification + shortcut actions
-    BootReceiver.java        — restarts the service on BOOT_COMPLETED / MY_PACKAGE_REPLACED
-    AdbGuardWidget.java      — home-screen widget provider
-    WifiState.java           — read current SSID/BSSID, classify trust state
-    HomeMatcher.java         — SSID + BSSID matching rules
-    SecureSettings.java      — WRITE_SECURE_SETTINGS writes for ADB / Developer options
-    SnoozeArmer.java         — schedules and cancels snooze windows
-    LocalIp.java             — local IPv4 lookup for the pairing helper card
-    Prefs.java               — persisted settings + decision log
+    App.java                  — Application subclass, notification channel setup
+    MainActivity.java         — single-activity UI
+    MonitorService.java       — foreground service while at home (or within
+                                a 60-second off-home grace window);
+                                NetworkCallback + 30-second watchdog
+    NetworkWatch.java         — passive Wi-Fi arrival callback that re-arms
+                                the FGS when home Wi-Fi reconnects
+    HomeArrivalReceiver.java  — receives the NetworkWatch PendingIntent and
+                                brings MonitorService back up
+    MonitorTileService.java   — Quick Settings tile
+    ControlReceiver.java      — internal broadcast handler for notification +
+                                shortcut actions
+    BootReceiver.java         — restarts the service on BOOT_COMPLETED /
+                                MY_PACKAGE_REPLACED
+    AdbGuardWidget.java       — home-screen widget provider
+    WifiState.java            — read current SSID/BSSID, classify trust state
+    HomeMatcher.java          — SSID + BSSID matching rules
+    SecureSettings.java       — WRITE_SECURE_SETTINGS writes for ADB /
+                                Developer options
+    SnoozeArmer.java          — schedules and cancels snooze windows
+    LocalIp.java              — local IPv4 lookup for the pairing helper card
+    Prefs.java                — persisted settings + decision log
 ```
 
 ## Release signing

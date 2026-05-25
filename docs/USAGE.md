@@ -200,11 +200,12 @@ References:
 | Case | Behavior |
 |---|---|
 | Screen turns off on a trusted network | Some OEMs (notably Samsung) hide Wi-Fi SSID/BSSID from background apps when the screen is off. The app keeps the trusted state if the underlying `Network` handle is unchanged (same Wi-Fi association); a roam or disconnect produces a new handle and falls back to fail-closed. |
+| Leaving home Wi-Fi | The foreground notification stays for a 60-second grace window, then disappears when the service stops. Monitoring is still on — a passive Wi-Fi callback brings the service (and the notification) back the next time you reconnect to your home network. |
 | Missing `WRITE_SECURE_SETTINGS` | Monitoring runs, settings writes fail. Grant via ADB. |
 | Location permission denied | Wi-Fi identity unavailable; fails closed and disables. |
 | Location toggle off | Wi-Fi identity unavailable; fails closed and disables. |
 | SSID matches but BSSID is new | Disables, unless SSID-only fallback is enabled or you add the new BSSID. |
-| Phone reboots | If monitoring was enabled, `BootReceiver` restarts the foreground service. |
+| Phone reboots | If monitoring was enabled, `BootReceiver` re-applies the rule: on home Wi-Fi the foreground service starts; otherwise it writes both settings off and arms the passive Wi-Fi watch. |
 | OEM blocks boot start | Open the app once and tap **Start monitoring**; set battery to Unrestricted. |
 | Wireless debugging never trusted on this network | Android may disable or prompt. Enable/allow once manually in Developer options. |
 | App is uninstalled | The app cannot run anymore. Manually disable Developer options / Wireless debugging if desired. |
@@ -213,7 +214,7 @@ References:
 
 ## Uninstall cleanup
 
-In the app, tap **Stop monitoring and disable now**. Or, from a host:
+In the app, tap **Stop and disable**. Or, from a host:
 
 ```sh
 adb shell settings put global adb_wifi_enabled 0

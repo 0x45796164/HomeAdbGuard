@@ -24,9 +24,12 @@ or the network is not trusted — the app fails closed and requests both off.
 ## Status
 
 - License: [MIT](LICENSE)
-- Min SDK: 34 (Android 14). Target + Compile SDK: 36 (Android 16).
+- Min SDK: 34 (Android 14). Target + Compile SDK track current stable.
 - Language: Java, Views + Material 3 (no Compose, no Kotlin).
-- Build: Android Gradle Plugin 9.1.1, Gradle 9.4.x, JDK 21.
+- Build: current Android Gradle Plugin, current Gradle wrapper, JDK 21.
+  Exact pinned versions live in `app/build.gradle.kts`,
+  `gradle/wrapper/gradle-wrapper.properties`, and
+  `gradle/gradle-daemon-jvm.properties`.
 
 ## What it does
 
@@ -38,8 +41,10 @@ or the network is not trusted — the app fails closed and requests both off.
 - In every other case (no Wi-Fi, wrong SSID, untrusted BSSID, missing
   permissions, Location off, Wi-Fi identity unreadable) it sets both back to
   `0`. The default behavior is to **fail closed**.
-- Runs as a foreground service with a persistent notification while
-  monitoring is active, and restarts after boot via `BOOT_COMPLETED`.
+- Runs as a foreground service with a persistent notification while at
+  home (or within a 60-second grace window after leaving). When off-home
+  for longer, the service stops and a passive Wi-Fi callback re-arms it on
+  the next home arrival. Restarts after boot via `BOOT_COMPLETED`.
 
 ## What it explicitly does not do
 

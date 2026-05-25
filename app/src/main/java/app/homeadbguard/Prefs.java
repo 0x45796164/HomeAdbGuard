@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 final class Prefs {
@@ -162,7 +163,7 @@ final class Prefs {
 
     static String normalizeBssid(String bssid) {
         if (bssid == null) return "";
-        String normalized = bssid.trim().toLowerCase();
+        String normalized = bssid.trim().toLowerCase(Locale.ROOT);
         if (normalized.equals("02:00:00:00:00:00")) return "";
         return normalized;
     }

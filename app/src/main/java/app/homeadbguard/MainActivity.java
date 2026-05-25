@@ -55,7 +55,7 @@ public final class MainActivity extends AppCompatActivity {
         wireMonitorCard();
         wireDiagnostics();
 
-        binding.versionText.setText(getString(R.string.version_label, BuildConfig.VERSION_NAME));
+        binding.aboutCard.versionText.setText(getString(R.string.version_label, BuildConfig.VERSION_NAME));
 
         handleShortcutIntent(getIntent());
     }
@@ -311,15 +311,15 @@ public final class MainActivity extends AppCompatActivity {
     // ---------- Diagnostics ----------
 
     private void wireDiagnostics() {
-        binding.diagHeader.setOnClickListener(v -> {
-            boolean expanded = binding.diagContent.getVisibility() == View.VISIBLE;
-            binding.diagContent.setVisibility(expanded ? View.GONE : View.VISIBLE);
-            binding.diagChevron.setImageResource(expanded
+        binding.diagCard.diagHeader.setOnClickListener(v -> {
+            boolean expanded = binding.diagCard.diagContent.getVisibility() == View.VISIBLE;
+            binding.diagCard.diagContent.setVisibility(expanded ? View.GONE : View.VISIBLE);
+            binding.diagCard.diagChevron.setImageResource(expanded
                     ? R.drawable.ic_radio_unchecked
                     : R.drawable.ic_check_circle);
         });
-        binding.diagPackage.setText(getPackageName());
-        binding.diagVerifyHint.setOnLongClickListener(v -> {
+        binding.diagCard.diagPackage.setText(getPackageName());
+        binding.diagCard.diagVerifyHint.setOnLongClickListener(v -> {
             copyToClipboard("verify commands", getString(R.string.diag_verify_hint));
             return true;
         });
@@ -421,7 +421,7 @@ public final class MainActivity extends AppCompatActivity {
             binding.homeBssidChips.removeAllViews();
             if (bssids.isEmpty()) {
                 Chip empty = new Chip(this);
-                empty.setText("(none)");
+                empty.setText(R.string.none_placeholder);
                 empty.setClickable(false);
                 binding.homeBssidChips.addView(empty);
             } else {
@@ -459,8 +459,10 @@ public final class MainActivity extends AppCompatActivity {
         boolean snoozing = Prefs.isSnoozeActive(this);
         if (snoozing) {
             long remainingMin = (Prefs.snoozeRemainingMs(this) + 59_999L) / 60_000L;
-            binding.snoozeSubtitle.setText(getString(R.string.snooze_active_label) + " — "
-                    + getString(R.string.snooze_remaining, remainingMin));
+            binding.snoozeSubtitle.setText(getString(
+                    R.string.snooze_active_with_remaining,
+                    getString(R.string.snooze_active_label),
+                    getString(R.string.snooze_remaining, remainingMin)));
         } else {
             binding.snoozeSubtitle.setText(R.string.snooze_subtitle);
         }
@@ -468,19 +470,19 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void renderDiagnostics(WifiState wifi) {
-        binding.diagPermLoc.setText(grantText(Manifest.permission.ACCESS_FINE_LOCATION));
-        binding.diagPermNearby.setText(grantText(Manifest.permission.NEARBY_WIFI_DEVICES));
-        binding.diagPermNotif.setText(grantText(Manifest.permission.POST_NOTIFICATIONS));
-        binding.diagPermSecure.setText(grantText(Manifest.permission.WRITE_SECURE_SETTINGS));
-        binding.diagLocationToggle.setText(wifi.locationEnabled
+        binding.diagCard.diagPermLoc.setText(grantText(Manifest.permission.ACCESS_FINE_LOCATION));
+        binding.diagCard.diagPermNearby.setText(grantText(Manifest.permission.NEARBY_WIFI_DEVICES));
+        binding.diagCard.diagPermNotif.setText(grantText(Manifest.permission.POST_NOTIFICATIONS));
+        binding.diagCard.diagPermSecure.setText(grantText(Manifest.permission.WRITE_SECURE_SETTINGS));
+        binding.diagCard.diagLocationToggle.setText(wifi.locationEnabled
                 ? getString(R.string.enabled)
                 : getString(R.string.disabled));
-        binding.diagWifiSource.setText(valueOrDash(wifi.source));
-        binding.diagLastEval.setText(valueOrDash(Prefs.lastEvaluation(this)));
-        binding.diagLastApply.setText(valueOrDash(Prefs.lastApplyResult(this)));
+        binding.diagCard.diagWifiSource.setText(valueOrDash(wifi.source));
+        binding.diagCard.diagLastEval.setText(valueOrDash(Prefs.lastEvaluation(this)));
+        binding.diagCard.diagLastApply.setText(valueOrDash(Prefs.lastApplyResult(this)));
 
         java.util.List<String> history = Prefs.decisionHistory(this);
-        binding.diagHistory.setText(history.isEmpty()
+        binding.diagCard.diagHistory.setText(history.isEmpty()
                 ? getString(R.string.diag_history_empty)
                 : String.join("\n", history));
     }

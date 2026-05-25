@@ -135,7 +135,6 @@
     <string name="pairing_copy_ip">Copy IP</string>
     <string name="pairing_copy_command">Copy command</string>
 
-    <!-- Automation -->
-    <string name="automation_title">Automation</string>
-    <string name="automation_subtitle">Trigger actions from Tasker, Macrodroid, or adb shell am broadcast. ENABLE and SNOOZE keep the trusted-network gate.</string>
+    <string name="none_placeholder">(none)</string>
+    <string name="snooze_active_with_remaining">%1$s — %2$s remaining</string>
 </resources>

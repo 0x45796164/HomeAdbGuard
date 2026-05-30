@@ -11,6 +11,9 @@ local.properties
 keystore.properties
 signing.properties
 
+# Whitelist the dummy CI keystore (intentionally committed; see ci/keystore/README.md)
+!ci/keystore/ci.jks
+
 # IDEs
 .idea/
 *.iml

@@ -11,6 +11,9 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,8 +34,30 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Configure dummy release signing
+        run: |
+          cat > keystore.properties <<'EOF'
+          storeFile=ci/keystore/ci.jks
+          storePassword=android
+          keyAlias=ci
+          keyPassword=android
+          EOF
+
       - name: Assemble, test, lint
-        run: ./gradlew assembleDebug testDebug lintDebug --stacktrace
+        run: ./gradlew assembleDebug assembleRelease testDebug lintDebug --stacktrace
+
+      - name: Stage release APK with friendly name
+        run: |
+          mkdir -p staged
+          cp app/build/outputs/apk/release/app-release.apk staged/HomeAdbGuard.apk
+
+      - name: Upload release APK
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: HomeAdbGuard-release-apk
+          path: staged/HomeAdbGuard.apk
+          if-no-files-found: error
 
       - name: Upload debug APK
         if: success()
@@ -49,3 +74,37 @@ jobs:
           name: lint-results-debug
           path: app/build/reports/lint-results-debug.html
           if-no-files-found: warn
+
+      - name: Replace rolling 'latest' release
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+
+      - name: Publish rolling 'latest' release
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build (from main)
+          target_commitish: ${{ github.sha }}
+          make_latest: 'true'
+          files: staged/HomeAdbGuard.apk
+          body: |
+            Rolling APK built from the latest commit on `main`. Always
+            reachable at this URL.
+
+            Signed with the dummy keystore in `ci/keystore/` — a stable
+            sideloadable signature, not a real release identity. See
+            [SECURITY.md](https://github.com/${{ github.repository }}/blob/main/SECURITY.md#ci-release-signing).
+
+            Install:
+
+            ```sh
+            adb install -r HomeAdbGuard.apk
+            adb shell pm grant app.homeadbguard android.permission.WRITE_SECURE_SETTINGS
+            ```
+
+            Commit: ${{ github.sha }}

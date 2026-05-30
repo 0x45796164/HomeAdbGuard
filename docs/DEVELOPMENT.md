@@ -32,11 +32,12 @@ Android Studio) or in the `ANDROID_HOME` environment variable.
 The GitHub Action at `.github/workflows/build.yml` runs:
 
 ```sh
-./gradlew assembleDebug testDebug lintDebug
+./gradlew assembleDebug assembleRelease testDebug lintDebug
 ```
 
-Run the same command locally before opening a PR. The lint report lands at
-`app/build/reports/lint-results-debug.html`.
+`assembleRelease` needs a `keystore.properties` at the repo root — see
+[Release signing](#release-signing) below for the one-time setup. The lint
+report lands at `app/build/reports/lint-results-debug.html`.
 
 ## Install
 
@@ -118,8 +119,19 @@ app/src/main/java/app/homeadbguard/
 
 ## Release signing
 
-For a personal release build, create a keystore **outside this repository**
-and do not commit it.
+`./gradlew assembleRelease` reads `keystore.properties` at the repo root,
+which points at a `.jks` file:
+
+```
+storeFile=<path relative to repo root, or absolute>
+storePassword=...
+keyAlias=...
+keyPassword=...
+```
+
+`keystore.properties` is in `.gitignore`. For a personal release identity,
+create a keystore **outside this repository** and reference it from a local
+`keystore.properties`:
 
 ```sh
 keytool -genkeypair \
@@ -130,9 +142,30 @@ keytool -genkeypair \
   -keystore ~/home-adb-guard-release.jks
 ```
 
-Then configure signing through Android Studio or a local, gitignored Gradle
-properties file. `*.jks`, `*.keystore`, and `keystore.properties` are already
-in `.gitignore`.
+If `keystore.properties` is absent, `assembleRelease` produces an unsigned
+APK.
+
+### CI dummy keystore
+
+The committed keystore at [`ci/keystore/ci.jks`](../ci/keystore) (passwords:
+`android` / `android`) is the one CI uses to sign the rolling
+[latest release](https://github.com/0x45796164/HomeAdbGuard/releases/latest).
+It exists to give every CI-built APK a stable signature so users can update
+without uninstalling. It is **not** a real release identity — anyone can
+re-sign with it. See [`ci/keystore/README.md`](../ci/keystore/README.md) and
+[SECURITY.md](../SECURITY.md#ci-release-signing).
+
+To reproduce a CI-equivalent build locally:
+
+```sh
+cat > keystore.properties <<'EOF'
+storeFile=ci/keystore/ci.jks
+storePassword=android
+keyAlias=ci
+keyPassword=android
+EOF
+./gradlew assembleRelease
+```
 
 ## Contributing rules
 

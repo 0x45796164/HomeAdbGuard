@@ -22,8 +22,11 @@ chmod +x ~/.config/scrcpy-desktop/manager.py
 ~/.config/scrcpy-desktop/manager.py install
 ```
 
-`install` writes `~/.config/autostart/scrcpy-desktop.desktop` so the tray
-starts at login.
+`install` generates `~/.config/autostart/scrcpy-desktop.desktop` from
+`Path.home()` so the tray starts at login. The `.desktop` body is built by
+`desktop_entry()` in `manager.py` — there is no separate template file to
+edit; running `install` again after moving `manager.py` is the supported way
+to refresh it.
 
 ## Usage
 

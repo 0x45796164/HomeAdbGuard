@@ -20,8 +20,8 @@ android {
         applicationId = "app.homeadbguard"
         minSdk = 34
         targetSdk = 37
-        versionCode = 9
-        versionName = "0.8.0"
+        versionCode = 10
+        versionName = "0.9.0"
     }
 
     compileOptions {

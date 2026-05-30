@@ -103,11 +103,10 @@ app/src/main/java/app/homeadbguard/
     HomeArrivalReceiver.java  — receives the NetworkWatch PendingIntent and
                                 brings MonitorService back up
     MonitorTileService.java   — Quick Settings tile
-    ControlReceiver.java      — internal broadcast handler for notification +
-                                shortcut actions
+    ControlReceiver.java      — internal broadcast handler for notification
+                                actions
     BootReceiver.java         — restarts the service on BOOT_COMPLETED /
                                 MY_PACKAGE_REPLACED
-    AdbGuardWidget.java       — home-screen widget provider
     WifiState.java            — read current SSID/BSSID, classify trust state
     HomeMatcher.java          — SSID + BSSID matching rules
     SecureSettings.java       — WRITE_SECURE_SETTINGS writes for ADB /

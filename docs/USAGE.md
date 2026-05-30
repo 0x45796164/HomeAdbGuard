@@ -96,16 +96,28 @@ current BSSID isn't in the trusted list. This is **less safe** — an attacker
 can stand up a Wi-Fi network with the same SSID. Leave it off unless your
 network legitimately rotates BSSIDs you can't enumerate.
 
-## Other entry points
+## Quick Settings tile (the main way to use this app)
 
-- **Quick Settings tile** — add the **Home ADB** tile to your Quick Settings
-  panel. Tap to toggle monitoring on/off. Requires the device to be unlocked.
-- **Launcher shortcuts** — long-press the app icon for **Enable ADB**,
-  **Disable ADB**, **Re-check**.
-- **Home-screen widget** — add **Home ADB Guard** from the widget picker.
-  Same green / red / amber states as the in-app card.
-- **Notification actions** — while the foreground service is running:
-  **Apply now**, **Disable now**, **Stop**.
+Drag the **Home ADB** tile into your Quick Settings panel — long-press an
+empty slot in the QS edit screen. The tile mirrors the monitoring state:
+
+- Active + "Protected at home" — monitoring is on, current Wi-Fi is trusted,
+  ADB is allowed.
+- Active + "Off-network — ADB off" — monitoring is on but the network isn't
+  trusted; the app is holding ADB disabled.
+- Inactive + "Monitoring off" — monitoring is stopped.
+
+Tapping the tile toggles monitoring on or off. The device must be unlocked
+first (`unlockAndRun`), so the tile cannot weaken protection from the lock
+screen.
+
+For most use cases this replaces opening the app entirely.
+
+## Notification actions
+
+While the foreground service is running, the notification has three quick
+actions: **Apply now** (re-evaluate the current Wi-Fi), **Disable now**, and
+**Stop** (stop monitoring and disable).
 
 ## Pairing helper
 

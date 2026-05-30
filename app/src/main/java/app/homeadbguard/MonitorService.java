@@ -152,7 +152,6 @@ public final class MonitorService extends Service {
                 nm.notify(NOTIFICATION_ID, buildNotification(context, wifi, match));
             }
         }
-        AdbGuardWidget.refreshAll(context);
     }
 
     private static Network activeWifiNetwork(ConnectivityManager localCm) {

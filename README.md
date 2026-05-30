@@ -24,10 +24,24 @@ deliberately buried.
 
 ## What this app does
 
-Puts that toggle behind one button. Optionally, flips it automatically when
-the phone joins or leaves a Wi-Fi network marked as trusted.
+Puts that toggle behind one button — best surfaced as a **Quick Settings
+tile** so the toggle lives one swipe away from anywhere in the OS, no app
+launch required. Optionally, flips ADB automatically when the phone joins
+or leaves a Wi-Fi network marked as trusted.
 
 That is the whole feature set.
+
+### The Quick Settings tile
+
+Drag the **Home ADB** tile into your Quick Settings panel (long-press an
+empty slot in the QS edit screen). Tap it once to toggle monitoring on or
+off; the tile's icon and subtitle reflect the current state (at home →
+green-shield, away → off, monitoring off → idle). Tapping requires the
+device to be unlocked, so the tile can't weaken protection from the lock
+screen.
+
+This is the way to use the app day-to-day. The main UI is for setup,
+diagnostics, and the occasional snooze.
 
 ## Use cases
 

@@ -40,10 +40,6 @@ import app.homeadbguard.databinding.ItemSetupStepBinding;
 public final class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST = 1001;
 
-    static final String ACTION_ENABLE_NOW = "app.homeadbguard.action.ENABLE_NOW";
-    static final String ACTION_DISABLE_NOW = "app.homeadbguard.action.DISABLE_NOW";
-    static final String ACTION_RECHECK_NOW = "app.homeadbguard.action.RECHECK_NOW";
-
     private ActivityMainBinding binding;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -67,15 +63,6 @@ public final class MainActivity extends AppCompatActivity {
         wireCollapsibleCards();
 
         binding.aboutCard.versionText.setText(getString(R.string.version_label, BuildConfig.VERSION_NAME));
-
-        handleShortcutIntent(getIntent());
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        handleShortcutIntent(intent);
     }
 
     @Override
@@ -142,30 +129,6 @@ public final class MainActivity extends AppCompatActivity {
     private void postRefresh() {
         mainHandler.removeCallbacks(refreshIfActive);
         mainHandler.postDelayed(refreshIfActive, 80L);
-    }
-
-    private void handleShortcutIntent(Intent intent) {
-        if (intent == null || intent.getAction() == null) return;
-        switch (intent.getAction()) {
-            case ACTION_ENABLE_NOW: {
-                SecureSettings.ApplyResult r = SecureSettings.enableNowIfAtHome(this);
-                snack(getString(r.adbWifiWriteOk ? R.string.enable_succeeded : R.string.enable_refused));
-                break;
-            }
-            case ACTION_DISABLE_NOW: {
-                SecureSettings.disableNow(this);
-                snack(getString(R.string.shortcut_disable_short));
-                break;
-            }
-            case ACTION_RECHECK_NOW: {
-                MonitorService.applyCurrentState(this);
-                snack(getString(R.string.shortcut_recheck_short));
-                break;
-            }
-            default:
-                return;
-        }
-        intent.setAction(null);
     }
 
     @Override
@@ -285,7 +248,6 @@ public final class MainActivity extends AppCompatActivity {
         SecureSettings.disableNow(this);
         Prefs.setLastEvaluation(this, "Saved home Wi-Fi cleared and ADB disabled");
         snack("Home Wi-Fi cleared");
-        AdbGuardWidget.refreshAll(this);
         refresh();
     }
 
@@ -347,7 +309,6 @@ public final class MainActivity extends AppCompatActivity {
         binding.monitorDisable.setOnClickListener(v -> {
             SecureSettings.disableNow(this);
             snack("Disable requested");
-            AdbGuardWidget.refreshAll(this);
             refresh();
         });
 

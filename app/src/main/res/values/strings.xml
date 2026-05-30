@@ -102,17 +102,6 @@
     <string name="tile_inactive_label">Home ADB</string>
     <string name="tile_inactive_subtitle">Monitoring off</string>
 
-    <!-- Launcher shortcuts -->
-    <string name="shortcut_enable_short">Enable ADB</string>
-    <string name="shortcut_enable_long">Enable ADB on home Wi-Fi</string>
-    <string name="shortcut_disable_short">Disable ADB</string>
-    <string name="shortcut_disable_long">Disable ADB now</string>
-    <string name="shortcut_recheck_short">Re-check</string>
-    <string name="shortcut_recheck_long">Re-check current Wi-Fi</string>
-
-    <!-- Widget -->
-    <string name="widget_description">Show whether ADB over Wi-Fi is currently allowed.</string>
-
     <!-- Snooze -->
     <string name="snooze_title">Snooze auto-disable</string>
     <string name="snooze_subtitle">Keep ADB on for a fixed duration during maintenance. Only armable while on trusted Wi-Fi.</string>

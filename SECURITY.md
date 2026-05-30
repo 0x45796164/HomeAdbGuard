@@ -35,6 +35,24 @@ In scope: **reducing attack surface** when the device leaves a trusted Wi-Fi
 network. The app requests Wireless debugging and Developer options off, as
 fast as the OS will allow.
 
+## Inter-app surface
+
+The app exposes the minimum surface required to function on Android:
+
+- `MainActivity` is exported (it has `MAIN/LAUNCHER`, which Android requires
+  to be exported). It does **not** declare any custom action intent-filter,
+  so no other app can implicitly drive its UI to toggle ADB. The only thing
+  another app can do via this component is launch the activity — which is
+  what any launcher icon already does.
+- `MonitorTileService` is the Quick Settings tile. Android requires it to
+  hold `android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"`,
+  which means only the system process can bind it. No other app can invoke
+  the tile.
+- All broadcast receivers (`BootReceiver`, `ControlReceiver`,
+  `HomeArrivalReceiver`) are `android:exported="false"` and reachable only
+  from inside the app's own process.
+- The foreground `MonitorService` is `android:exported="false"`.
+
 ## Reporting a vulnerability
 
 Open a private security advisory through the repository host

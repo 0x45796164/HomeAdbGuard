@@ -61,7 +61,6 @@ A representative scrcpy invocation:
 ```sh
 scrcpy \
   --new-display=1920x1080/220 \
-  --start-app=com.sec.android.app.launcher \
   --video-codec=h264 \
   --video-bit-rate=12M \
   --max-fps=60 \

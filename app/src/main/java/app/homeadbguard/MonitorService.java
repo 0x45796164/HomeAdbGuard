@@ -84,15 +84,23 @@ public final class MonitorService extends Service {
         // user explicitly opted in while at home. Skip the at-home gate.
         if (!Prefs.isSnoozeActive(context)) {
             WifiState wifi = WifiState.current(context);
-            HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
-            if (!match.atHome) {
-                SecureSettings.setSafeState(context, false);
-                NetworkWatch.arm(context);
-                Prefs.appendDecision(context,
-                        Instant.now()
-                                + " — Off-home; FGS not started, passive Wi-Fi watch armed ("
-                                + match.reason + ")");
-                return false;
+            // Android 13+ redacts Wi-Fi identity for non-foreground callers
+            // (QS tile, broadcast receivers). When the read comes back
+            // redacted we cannot trust the off-home verdict — start the FGS
+            // optimistically and let it re-evaluate from its own foreground
+            // context. The 60s watchdog grace will clean up if it really is
+            // off-home.
+            if (!wifi.isRedacted()) {
+                HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
+                if (!match.atHome) {
+                    SecureSettings.setSafeState(context, false);
+                    NetworkWatch.arm(context);
+                    Prefs.appendDecision(context,
+                            Instant.now()
+                                    + " — Off-home; FGS not started, passive Wi-Fi watch armed ("
+                                    + match.reason + ")");
+                    return false;
+                }
             }
         }
 
@@ -143,6 +151,7 @@ public final class MonitorService extends Service {
                 + ", reason=" + match.reason
                 + ", wifi=" + wifiSummary(wifi)
                 + ", apply=" + apply);
+        Prefs.setLastDecision(context, match.atHome, match.reason);
         Prefs.appendDecision(context, now + " " + (match.atHome ? "ENABLE" : "DISABLE")
                 + " — " + match.reason
                 + (wifi.ssid == null || wifi.ssid.isEmpty() ? "" : " (on " + wifi.ssid + ")"));

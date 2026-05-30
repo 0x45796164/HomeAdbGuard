@@ -44,6 +44,16 @@ final class WifiState {
                 && !bssid.isEmpty();
     }
 
+    /**
+     * True when the OS reported a Wi-Fi transport but the SSID/BSSID came back
+     * empty — which on Android 13+ means the caller is not foreground and the
+     * Wi-Fi identity is privacy-redacted. The fix is to defer to the FGS,
+     * which reads from foreground context.
+     */
+    boolean isRedacted() {
+        return wifiTransportSeen && !isUsable();
+    }
+
     static WifiState current(Context context) {
         boolean locEnabled = isLocationEnabled(context);
         boolean fine = context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)

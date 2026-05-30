@@ -101,6 +101,7 @@
     <string name="tile_active_away_subtitle">Off-network — ADB off</string>
     <string name="tile_inactive_label">Home ADB</string>
     <string name="tile_inactive_subtitle">Monitoring off</string>
+    <string name="tile_evaluating_subtitle">Starting…</string>
 
     <!-- Snooze -->
     <string name="snooze_title">Snooze auto-disable</string>

@@ -21,6 +21,9 @@ final class Prefs {
     static final String KEY_DECISION_HISTORY = "decision_history";
     static final String KEY_SNOOZE_UNTIL = "snooze_until_millis";
     static final String KEY_NETWORK_WATCH_ARMED = "network_watch_armed";
+    static final String KEY_LAST_DECISION_PRESENT = "last_decision_present";
+    static final String KEY_LAST_DECISION_AT_HOME = "last_decision_at_home";
+    static final String KEY_LAST_DECISION_REASON = "last_decision_reason";
 
     private static final int HISTORY_MAX = 10;
     private static final String HISTORY_SEP = "\n";
@@ -56,7 +59,33 @@ final class Prefs {
     }
 
     static void setMonitoring(Context context, boolean enabled) {
-        get(context).edit().putBoolean(KEY_MONITORING, enabled).apply();
+        SharedPreferences.Editor edit = get(context).edit().putBoolean(KEY_MONITORING, enabled);
+        if (!enabled) {
+            edit.remove(KEY_LAST_DECISION_PRESENT)
+                    .remove(KEY_LAST_DECISION_AT_HOME)
+                    .remove(KEY_LAST_DECISION_REASON);
+        }
+        edit.apply();
+    }
+
+    static boolean lastDecisionPresent(Context context) {
+        return get(context).getBoolean(KEY_LAST_DECISION_PRESENT, false);
+    }
+
+    static boolean lastDecisionAtHome(Context context) {
+        return get(context).getBoolean(KEY_LAST_DECISION_AT_HOME, false);
+    }
+
+    static String lastDecisionReason(Context context) {
+        return get(context).getString(KEY_LAST_DECISION_REASON, "");
+    }
+
+    static void setLastDecision(Context context, boolean atHome, String reason) {
+        get(context).edit()
+                .putBoolean(KEY_LAST_DECISION_PRESENT, true)
+                .putBoolean(KEY_LAST_DECISION_AT_HOME, atHome)
+                .putString(KEY_LAST_DECISION_REASON, safe(reason))
+                .apply();
     }
 
     static void setAllowSsidOnly(Context context, boolean enabled) {

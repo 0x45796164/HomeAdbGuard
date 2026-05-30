@@ -56,9 +56,16 @@ public final class MonitorTileService extends TileService {
             label = getString(R.string.tile_inactive_label);
             subtitle = getString(R.string.tile_inactive_subtitle);
             state = Tile.STATE_INACTIVE;
+        } else if (!Prefs.lastDecisionPresent(this)) {
+            // Monitoring just turned on; FGS hasn't written a decision yet.
+            // Don't call WifiState.current() — Android 13+ redacts Wi-Fi
+            // identity for non-foreground processes like this tile binding.
+            icon = R.drawable.ic_shield_check;
+            label = getString(R.string.tile_active_home_label);
+            subtitle = getString(R.string.tile_evaluating_subtitle);
+            state = Tile.STATE_ACTIVE;
         } else {
-            WifiState wifi = WifiState.current(this);
-            boolean atHome = HomeMatcher.evaluate(this, wifi).atHome;
+            boolean atHome = Prefs.lastDecisionAtHome(this);
             icon = R.drawable.ic_shield_check;
             label = getString(atHome ? R.string.tile_active_home_label : R.string.tile_active_away_label);
             subtitle = getString(atHome ? R.string.tile_active_home_subtitle : R.string.tile_active_away_subtitle);

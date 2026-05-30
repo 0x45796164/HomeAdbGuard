@@ -79,6 +79,15 @@ external display. `scrcpy` over Wi-Fi works from any computer on the LAN, but
 every time Wireless debugging trips off it sends the user back through
 Developer options. Home ADB Guard exists to remove that friction.
 
+### Supplementary: KDE tray launcher
+
+[`scrcpy-desktop/`](scrcpy-desktop/) ships a small PyQt6 KDE Plasma tray
+launcher that pairs with this app: once Home ADB Guard has ADB-over-Wi-Fi up,
+one click on the tray icon launches scrcpy with the flags above, auto-detects
+connected devices, and remembers a default. **KDE Plasma only** — not useful
+on GNOME, Windows, or macOS. Requires `python-pyqt6`, `adb`, `scrcpy`. See
+[scrcpy-desktop/README.md](scrcpy-desktop/README.md) for install.
+
 ## Why not Tasker / Automate / [insert super-app]
 
 Those work and can express this rule. They also want broad permissions, run

@@ -1,0 +1,16 @@
+[Desktop Entry]
+Comment=System tray launcher for scrcpy Android sessions
+Exec=/home/user/.config/scrcpy-desktop/manager.py tray
+GenericName=
+Icon=phone
+MimeType=
+Name[en_US]=scrcpy-desktop
+Name=scrcpy-desktop
+Path=
+StartupNotify=true
+Terminal=false
+TerminalOptions=
+Type=Application
+X-KDE-AutostartScript=true
+X-KDE-SubstituteUID=false
+X-KDE-Username=

@@ -93,6 +93,23 @@
     <string name="about_body">Open source, MIT licensed. No internet permission, no telemetry, no analytics. The app fails closed: if anything is uncertain, ADB over Wi-Fi is requested off.</string>
     <string name="version_label">Version %1$s</string>
 
+    <!-- Stronger fingerprinting -->
+    <string name="fingerprint_section_title">Stronger fingerprinting</string>
+    <string name="fingerprint_strict_label">Strict fingerprinting</string>
+    <string name="fingerprint_strict_desc">Also require captured security type, frequency, Wi-Fi standard, and MLO state to match. Off by default.</string>
+    <string name="fingerprint_summary_label">Captured fingerprint</string>
+    <string name="fingerprint_summary_unset">Not captured yet</string>
+    <string name="fingerprint_capture_action">Capture current fingerprint</string>
+    <string name="fingerprint_capture_refused">Capture refused — not on saved home Wi-Fi.</string>
+    <string name="fingerprint_captured">Fingerprint captured.</string>
+
+    <!-- Minimum protection level (independent of strict fingerprinting) -->
+    <string name="min_protection_label">Minimum protection level</string>
+    <string name="min_protection_desc">Refuse to enable ADB on networks weaker than this, even when the SSID matches.</string>
+    <string name="min_protection_off">Off</string>
+    <string name="min_protection_wpa2">WPA2+</string>
+    <string name="min_protection_wpa3">WPA3 only</string>
+
     <!-- Quick Settings tile -->
     <string name="tile_label">Home ADB</string>
     <string name="tile_active_home_label">Home ADB</string>

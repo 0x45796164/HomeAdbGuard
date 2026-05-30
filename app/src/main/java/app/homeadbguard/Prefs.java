@@ -25,6 +25,19 @@ final class Prefs {
     static final String KEY_LAST_DECISION_AT_HOME = "last_decision_at_home";
     static final String KEY_LAST_DECISION_REASON = "last_decision_reason";
 
+    static final String KEY_STRICT_FINGERPRINT = "strict_fingerprint";
+    static final String KEY_EXPECTED_SECURITY_TYPE = "expected_security_type";
+    static final String KEY_EXPECTED_FREQUENCY_MHZ = "expected_frequency_mhz";
+    static final String KEY_EXPECTED_WIFI_STANDARD = "expected_wifi_standard";
+    static final String KEY_EXPECTED_MLO_ACTIVE = "expected_mlo_active";
+    static final String KEY_MIN_SECURITY_TYPE = "min_security_type";
+
+    /** Sentinel "no value captured / no enforcement" for the int-encoded fingerprint slots. */
+    static final int SEC_UNSET = -1;
+    static final int FREQ_UNSET = -1;
+    static final int STD_UNSET = -1;
+    static final int MLO_UNSET = -1;
+
     private static final int HISTORY_MAX = 10;
     private static final String HISTORY_SEP = "\n";
 
@@ -86,6 +99,68 @@ final class Prefs {
                 .putBoolean(KEY_LAST_DECISION_AT_HOME, atHome)
                 .putString(KEY_LAST_DECISION_REASON, safe(reason))
                 .apply();
+    }
+
+    static boolean strictFingerprint(Context context) {
+        return get(context).getBoolean(KEY_STRICT_FINGERPRINT, false);
+    }
+
+    static void setStrictFingerprint(Context context, boolean enabled) {
+        get(context).edit().putBoolean(KEY_STRICT_FINGERPRINT, enabled).apply();
+    }
+
+    static int expectedSecurityType(Context context) {
+        return get(context).getInt(KEY_EXPECTED_SECURITY_TYPE, SEC_UNSET);
+    }
+
+    static int expectedFrequencyMhz(Context context) {
+        return get(context).getInt(KEY_EXPECTED_FREQUENCY_MHZ, FREQ_UNSET);
+    }
+
+    static int expectedWifiStandard(Context context) {
+        return get(context).getInt(KEY_EXPECTED_WIFI_STANDARD, STD_UNSET);
+    }
+
+    static int expectedMloActive(Context context) {
+        return get(context).getInt(KEY_EXPECTED_MLO_ACTIVE, MLO_UNSET);
+    }
+
+    static boolean hasCapturedFingerprint(Context context) {
+        SharedPreferences p = get(context);
+        return p.getInt(KEY_EXPECTED_SECURITY_TYPE, SEC_UNSET) != SEC_UNSET
+                || p.getInt(KEY_EXPECTED_FREQUENCY_MHZ, FREQ_UNSET) != FREQ_UNSET
+                || p.getInt(KEY_EXPECTED_WIFI_STANDARD, STD_UNSET) != STD_UNSET
+                || p.getInt(KEY_EXPECTED_MLO_ACTIVE, MLO_UNSET) != MLO_UNSET;
+    }
+
+    static void captureFingerprint(Context context, WifiState wifi) {
+        SharedPreferences.Editor edit = get(context).edit();
+        edit.putInt(KEY_EXPECTED_SECURITY_TYPE,
+                wifi.securityType == null ? SEC_UNSET : wifi.securityType);
+        edit.putInt(KEY_EXPECTED_FREQUENCY_MHZ,
+                wifi.frequencyMhz == null ? FREQ_UNSET : wifi.frequencyMhz);
+        edit.putInt(KEY_EXPECTED_WIFI_STANDARD,
+                wifi.wifiStandard == null ? STD_UNSET : wifi.wifiStandard);
+        edit.putInt(KEY_EXPECTED_MLO_ACTIVE,
+                wifi.mloActive == null ? MLO_UNSET : (wifi.mloActive ? 1 : 0));
+        edit.apply();
+    }
+
+    static void clearFingerprint(Context context) {
+        get(context).edit()
+                .remove(KEY_EXPECTED_SECURITY_TYPE)
+                .remove(KEY_EXPECTED_FREQUENCY_MHZ)
+                .remove(KEY_EXPECTED_WIFI_STANDARD)
+                .remove(KEY_EXPECTED_MLO_ACTIVE)
+                .apply();
+    }
+
+    static int minSecurityType(Context context) {
+        return get(context).getInt(KEY_MIN_SECURITY_TYPE, SEC_UNSET);
+    }
+
+    static void setMinSecurityType(Context context, int type) {
+        get(context).edit().putInt(KEY_MIN_SECURITY_TYPE, type).apply();
     }
 
     static void setAllowSsidOnly(Context context, boolean enabled) {
@@ -171,6 +246,11 @@ final class Prefs {
                 .remove(KEY_HOME_SSID)
                 .remove(KEY_HOME_BSSIDS)
                 .putBoolean(KEY_ALLOW_SSID_ONLY, false)
+                .remove(KEY_STRICT_FINGERPRINT)
+                .remove(KEY_EXPECTED_SECURITY_TYPE)
+                .remove(KEY_EXPECTED_FREQUENCY_MHZ)
+                .remove(KEY_EXPECTED_WIFI_STANDARD)
+                .remove(KEY_EXPECTED_MLO_ACTIVE)
                 .apply();
     }
 

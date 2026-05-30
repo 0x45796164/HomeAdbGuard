@@ -220,6 +220,99 @@ public final class MainActivity extends AppCompatActivity {
             MonitorService.applyCurrentState(this);
             refresh();
         });
+
+        binding.fingerprintStrictSwitch.setOnCheckedChangeListener((CompoundButton btn, boolean checked) -> {
+            if (!btn.isPressed()) return;
+            Prefs.setStrictFingerprint(this, checked);
+            Prefs.setLastEvaluation(this, "Strict fingerprinting is now " + (checked ? "enabled" : "disabled"));
+            MonitorService.applyCurrentState(this);
+            refresh();
+        });
+
+        binding.fingerprintCapture.setOnClickListener(v -> captureFingerprint());
+
+        binding.minProtectionChips.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (checkedIds.isEmpty()) return;
+            int id = checkedIds.get(0);
+            int sec;
+            if (id == R.id.min_protection_wpa2) {
+                sec = android.net.wifi.WifiInfo.SECURITY_TYPE_PSK;
+            } else if (id == R.id.min_protection_wpa3) {
+                sec = android.net.wifi.WifiInfo.SECURITY_TYPE_SAE;
+            } else {
+                sec = Prefs.SEC_UNSET;
+            }
+            if (sec == Prefs.minSecurityType(this)) return;
+            Prefs.setMinSecurityType(this, sec);
+            Prefs.setLastEvaluation(this, "Minimum protection level set to "
+                    + (sec == Prefs.SEC_UNSET ? "off" : WifiNames.securityName(sec)));
+            MonitorService.applyCurrentState(this);
+            refresh();
+        });
+    }
+
+    private void captureFingerprint() {
+        WifiState wifi = WifiState.current(this);
+        if (!wifi.isUsable()) {
+            snack(getString(R.string.fingerprint_capture_refused));
+            return;
+        }
+        String savedSsid = Prefs.homeSsid(this);
+        if (savedSsid.isEmpty() || !savedSsid.equals(wifi.ssid)) {
+            snack(getString(R.string.fingerprint_capture_refused));
+            return;
+        }
+        Prefs.captureFingerprint(this, wifi);
+        Prefs.setLastEvaluation(this, "Captured fingerprint: " + fingerprintSummary(wifi));
+        snack(getString(R.string.fingerprint_captured));
+        MonitorService.applyCurrentState(this);
+        refresh();
+    }
+
+    private static String fingerprintSummary(WifiState wifi) {
+        StringBuilder sb = new StringBuilder();
+        if (wifi.securityType != null) sb.append(WifiNames.securityName(wifi.securityType));
+        if (wifi.frequencyMhz != null) {
+            if (sb.length() > 0) sb.append(" · ");
+            sb.append(wifi.frequencyMhz).append(" MHz");
+            Integer ch = wifi.channel();
+            if (ch != null) sb.append(" / Ch ").append(ch);
+        }
+        if (wifi.wifiStandard != null) {
+            if (sb.length() > 0) sb.append(" · ");
+            sb.append(WifiNames.standardName(wifi.wifiStandard));
+        }
+        if (wifi.mloActive != null) {
+            if (sb.length() > 0) sb.append(" · ");
+            sb.append("MLO ").append(wifi.mloActive ? "on" : "off");
+        }
+        return sb.length() == 0 ? "" : sb.toString();
+    }
+
+    private static String fingerprintSummaryFromPrefs(android.content.Context ctx) {
+        int sec = Prefs.expectedSecurityType(ctx);
+        int freq = Prefs.expectedFrequencyMhz(ctx);
+        int std = Prefs.expectedWifiStandard(ctx);
+        int mlo = Prefs.expectedMloActive(ctx);
+        if (sec == Prefs.SEC_UNSET && freq == Prefs.FREQ_UNSET
+                && std == Prefs.STD_UNSET && mlo == Prefs.MLO_UNSET) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        if (sec != Prefs.SEC_UNSET) sb.append(WifiNames.securityName(sec));
+        if (freq != Prefs.FREQ_UNSET) {
+            if (sb.length() > 0) sb.append(" · ");
+            sb.append(freq).append(" MHz");
+        }
+        if (std != Prefs.STD_UNSET) {
+            if (sb.length() > 0) sb.append(" · ");
+            sb.append(WifiNames.standardName(std));
+        }
+        if (mlo != Prefs.MLO_UNSET) {
+            if (sb.length() > 0) sb.append(" · ");
+            sb.append("MLO ").append(mlo == 1 ? "on" : "off");
+        }
+        return sb.toString();
     }
 
     private void addCurrentBssid() {
@@ -494,6 +587,28 @@ public final class MainActivity extends AppCompatActivity {
         boolean ssidOnly = Prefs.allowSsidOnly(this);
         if (binding.homeSsidOnlySwitch.isChecked() != ssidOnly) {
             binding.homeSsidOnlySwitch.setChecked(ssidOnly);
+        }
+
+        boolean strict = Prefs.strictFingerprint(this);
+        if (binding.fingerprintStrictSwitch.isChecked() != strict) {
+            binding.fingerprintStrictSwitch.setChecked(strict);
+        }
+
+        String summary = fingerprintSummaryFromPrefs(this);
+        binding.fingerprintSummary.setText(summary.isEmpty()
+                ? getString(R.string.fingerprint_summary_unset) : summary);
+
+        int minSec = Prefs.minSecurityType(this);
+        int targetChipId;
+        if (minSec == android.net.wifi.WifiInfo.SECURITY_TYPE_PSK) {
+            targetChipId = R.id.min_protection_wpa2;
+        } else if (minSec == android.net.wifi.WifiInfo.SECURITY_TYPE_SAE) {
+            targetChipId = R.id.min_protection_wpa3;
+        } else {
+            targetChipId = R.id.min_protection_off;
+        }
+        if (binding.minProtectionChips.getCheckedChipId() != targetChipId) {
+            binding.minProtectionChips.check(targetChipId);
         }
     }
 

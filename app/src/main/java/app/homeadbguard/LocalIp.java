@@ -8,6 +8,8 @@ import android.net.Network;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Reads the device's local non-loopback IPv4 via ConnectivityManager.
@@ -44,5 +46,32 @@ final class LocalIp {
             }
         }
         return null;
+    }
+
+    /**
+     * All of this device's local (non-loopback) addresses on the active network,
+     * read via ConnectivityManager for the same SELinux reason as above. Used to
+     * tell whether an mDNS-resolved host belongs to us rather than another device
+     * advertising wireless debugging on the same LAN. Link-local addresses are
+     * kept here (unlike {@link #firstUsableIpv4}) because adbd may advertise them.
+     */
+    static Set<InetAddress> localAddresses(Context ctx) {
+        Set<InetAddress> out = new HashSet<>();
+        ConnectivityManager cm = ctx.getSystemService(ConnectivityManager.class);
+        if (cm == null) return out;
+        Network active = cm.getActiveNetwork();
+        if (active == null) return out;
+        LinkProperties lp;
+        try {
+            lp = cm.getLinkProperties(active);
+        } catch (RuntimeException e) {
+            return out;
+        }
+        if (lp == null) return out;
+        for (LinkAddress la : lp.getLinkAddresses()) {
+            InetAddress addr = la == null ? null : la.getAddress();
+            if (addr != null && !addr.isLoopbackAddress()) out.add(addr);
+        }
+        return out;
     }
 }

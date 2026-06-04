@@ -31,6 +31,8 @@ final class Prefs {
     static final String KEY_LAST_ADB_CONFIDENCE = "last_adb_confidence";
     static final String KEY_LAST_ADB_SUMMARY = "last_adb_summary";
     static final String KEY_LAST_MODE = "last_mode";
+    static final String KEY_ADB_PORT = "adb_wireless_port";
+    static final String KEY_PORT_DISCOVERY = "port_discovery_enabled";
 
     static final String KEY_STRICT_FINGERPRINT = "strict_fingerprint";
     static final String KEY_EXPECTED_SECURITY_TYPE = "expected_security_type";
@@ -326,6 +328,26 @@ final class Prefs {
 
     static String lastMode(Context context) {
         return get(context).getString(KEY_LAST_MODE, "");
+    }
+
+    /** Opt-in: best-effort mDNS discovery of the wireless port. Off by default. */
+    static boolean portDiscoveryEnabled(Context context) {
+        return get(context).getBoolean(KEY_PORT_DISCOVERY, false);
+    }
+
+    static void setPortDiscoveryEnabled(Context context, boolean enabled) {
+        get(context).edit().putBoolean(KEY_PORT_DISCOVERY, enabled).apply();
+    }
+
+    /** Last discovered wireless-debugging connect port, or 0 if unknown. */
+    static int adbPort(Context context) {
+        return get(context).getInt(KEY_ADB_PORT, 0);
+    }
+
+    /** Stores the port; no-op (no listener churn) when the value is unchanged. */
+    static void setAdbPort(Context context, int port) {
+        if (adbPort(context) == port) return;
+        get(context).edit().putInt(KEY_ADB_PORT, port).apply();
     }
 
     private static String join(Set<String> items) {

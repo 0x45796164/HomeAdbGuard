@@ -133,17 +133,55 @@ For most use cases this replaces opening the app entirely.
 
 The persistent notification is state-driven:
 
-- **ON** — *Pause* · *Stop guard*
-- **PAUSED** — *Resume* · *Stop guard*
-- **SNOOZED** — *End snooze* · *Stop guard*
-- **AWAY** — *Stop guard*
+- **ON** — *Pause* · *Refresh* · *Stop guard*
+- **PAUSED** — *Resume* · *Refresh* · *Stop guard*
+- **SNOOZED** — *End snooze* · *Refresh* · *Stop guard*
+- **AWAY** — *Refresh* · *Stop guard*
+
+*Refresh* re-runs the network check and forces a full ADB re-establishment —
+use it to unstick the state without waiting for the next watchdog tick or
+re-opening the app.
 
 ## Pairing helper
 
 The "Connect from your computer" card on the home screen shows the device's
-local IPv4 and a copyable `adb connect <IP>:PORT` template. Use the port that
-Android shows under Developer options → Wireless debugging → Pair device with
-pairing code (it's dynamic on Android 11+).
+local IPv4 and a copyable `adb connect <IP>:PORT` command. By default you
+supply the port — it appears under Developer options → Wireless debugging
+(dynamic on Android 11+).
+
+### Connecting reliably (keep `adb` current)
+
+In practice the wireless connection is most reliable when your computer's `adb`
+discovers the device over **mDNS** rather than relying solely on a hand-typed
+`adb connect <IP>:<PORT>`. mDNS lets `adb` find the device and its current
+(randomised) port automatically:
+
+```sh
+adb mdns services      # list what adb sees advertised
+```
+
+This depends on a **recent host `adb` (platform-tools)** — an outdated one can
+ship a broken mDNS stack. Concrete example: an Arch Linux `android-tools`
+downgrade from **37 → 35** broke mDNS discovery entirely; re-upgrading to 37
+restored it. So if wireless ADB stops working after a system/package update,
+check `adb version` on your computer first and update platform-tools before
+debugging the phone side.
+
+### Optional: try to auto-detect the port
+
+The card has an opt-in **"Try to auto-detect the port"** switch (off by
+default). When enabled, the app attempts a best-effort mDNS look-up of the
+`_adb-tls-connect._tcp` service that `adbd` advertises while wireless debugging
+is listening, and — if it finds it — fills the port into the command, the card,
+and the ongoing notification. Since Android randomises the port on every `adbd`
+(re)bind, it re-checks after each re-establishment, and a one-time notification
+flags the new `IP:PORT` when it changes.
+
+This is **best-effort and may not work on every device or ROM**: some OEMs only
+advertise the service while the Wireless debugging screen is open, and mDNS can
+be blocked on the network. If nothing shows up, just read the port from
+Developer options → Wireless debugging as usual. The look-up is passive — it
+never toggles or rebinds ADB.
 
 ## Decision history
 
@@ -173,6 +211,7 @@ Avoid any "deep sleep" / "hibernate apps" list.
 | SSID matches but BSSID is new | Disables, unless SSID-only fallback is on or you add the new BSSID. |
 | Phone reboots | If monitoring was on, `BootReceiver` re-applies the rule: home Wi-Fi → service starts; otherwise → writes both off and arms the passive watch. |
 | OEM blocks boot start | Open the app once, turn on **Guard armed**, and set battery to Unrestricted. |
+| Wireless ADB stops connecting after a computer update | Often a host-side `adb` regression, not the phone. An outdated/downgraded `adb` can break mDNS (e.g. Arch `android-tools` 37 → 35). Check `adb version` and update platform-tools; prefer mDNS (`adb mdns services`) for discovery. |
 | App is uninstalled | The app can't run anymore. Manually disable Developer options / Wireless debugging if you want. |
 
 ## Verifying behavior with ADB

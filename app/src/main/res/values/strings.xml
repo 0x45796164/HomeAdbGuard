@@ -157,8 +157,13 @@
     <string name="pairing_title">Connect from your computer</string>
     <string name="pairing_subtitle">Your phone\'s local IP for ADB over Wi-Fi.</string>
     <string name="pairing_ip_label">Local IPv4</string>
-    <string name="pairing_command_label">Command (replace PORT with the one Android shows under Wireless debugging)</string>
+    <string name="pairing_port_switch_label">Try to auto-detect the port</string>
+    <string name="pairing_port_switch_desc">Best-effort mDNS lookup of the wireless ADB port. Off by default — it may not work on every device or ROM, and the port still appears under Developer options → Wireless debugging.</string>
+    <string name="pairing_port_label">Wireless ADB port</string>
+    <string name="pairing_port_unknown">Not detected yet — check Developer options → Wireless debugging</string>
+    <string name="pairing_command_label">Command</string>
     <string name="pairing_command_template">adb connect %1$s:PORT</string>
+    <string name="pairing_command_template_port">adb connect %1$s:%2$d</string>
     <string name="pairing_no_ip">Not connected to a usable network.</string>
     <string name="pairing_copy_ip">Copy IP</string>
     <string name="pairing_copy_command">Copy command</string>

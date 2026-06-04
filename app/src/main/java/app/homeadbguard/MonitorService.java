@@ -221,7 +221,27 @@ public final class MonitorService extends Service {
 
         if (state.adbShouldBeOn && Prefs.monitoring(context)) {
             scheduleDetectAndRecover(context.getApplicationContext(), effectiveForce);
+            // Opt-in: re-discover the (randomised) wireless port after a
+            // re-establishment, or whenever we do not yet have one. Steady-state
+            // ticks skip it.
+            if (Prefs.portDiscoveryEnabled(context)
+                    && (effectiveForce || Prefs.adbPort(context) == 0)) {
+                AdbPortFinder.refresh(context);
+            }
+        } else if (!state.adbShouldBeOn && Prefs.adbPort(context) != 0) {
+            // ADB is no longer on — the tracked port is stale; forget it.
+            AdbPortFinder.clear(context);
         }
+    }
+
+    /** Rebuild and re-post the ongoing notification from the current state. */
+    static void updateNotification(Context ctx) {
+        if (!Prefs.monitoring(ctx)) return;
+        NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+        if (nm == null) return;
+        WifiState wifi = WifiState.current(ctx);
+        HomeMatcher.MatchResult match = HomeMatcher.evaluate(ctx, wifi);
+        nm.notify(NOTIFICATION_ID, buildNotification(ctx, wifi, GuardState.resolve(ctx, match)));
     }
 
     /**
@@ -474,7 +494,7 @@ public final class MonitorService extends Service {
         switch (state.mode) {
             case ON:
                 title = "Protected · Wireless ADB on";
-                body = network + " · " + verifiedLine(ctx);
+                body = network + " · " + verifiedLine(ctx) + portSuffix(ctx);
                 b.addAction(action(android.R.drawable.ic_media_pause, "Pause", pause));
                 b.addAction(action(android.R.drawable.ic_popup_sync, "Refresh", refresh));
                 b.addAction(action(android.R.drawable.ic_menu_close_clear_cancel, "Stop guard", stopGuard));
@@ -510,6 +530,11 @@ public final class MonitorService extends Service {
         return b.setContentTitle(title)
                 .setContentText(body)
                 .build();
+    }
+
+    private static String portSuffix(Context ctx) {
+        int port = Prefs.adbPort(ctx);
+        return port > 0 ? " · port " + port : "";
     }
 
     private static Notification.Action action(int icon, String label, PendingIntent pi) {

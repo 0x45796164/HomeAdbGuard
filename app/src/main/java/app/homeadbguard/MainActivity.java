@@ -352,8 +352,27 @@ public final class MainActivity extends AppCompatActivity {
 
     private void wirePairingCard() {
         binding.pairingCopyIp.setOnClickListener(v -> withLocalIp(ip -> copyToClipboard("local IP", ip)));
-        binding.pairingCopyCommand.setOnClickListener(v -> withLocalIp(ip ->
-                copyToClipboard("adb connect command", getString(R.string.pairing_command_template, ip))));
+        binding.pairingCopyCommand.setOnClickListener(v ->
+                withLocalIp(ip -> copyToClipboard("adb connect command", connectCommand(ip))));
+
+        binding.pairingPortSwitch.setOnCheckedChangeListener((CompoundButton btn, boolean checked) -> {
+            if (!btn.isPressed()) return;
+            Prefs.setPortDiscoveryEnabled(this, checked);
+            if (checked) {
+                // Passive mDNS look-up — does NOT toggle/rebind ADB.
+                AdbPortFinder.refresh(this);
+            } else {
+                AdbPortFinder.clear(this);
+            }
+            refresh();
+        });
+    }
+
+    private String connectCommand(String ip) {
+        int port = Prefs.adbPort(this);
+        return port > 0
+                ? getString(R.string.pairing_command_template_port, ip, port)
+                : getString(R.string.pairing_command_template, ip);
     }
 
     private void withLocalIp(Consumer<String> onIp) {
@@ -367,13 +386,24 @@ public final class MainActivity extends AppCompatActivity {
 
     private void renderPairingCard() {
         String ip = LocalIp.firstUsableIpv4(this);
+        int port = Prefs.adbPort(this);
+        boolean portDiscovery = Prefs.portDiscoveryEnabled(this);
+
         if (ip == null) {
             binding.pairingIp.setText(R.string.pairing_no_ip);
             binding.pairingCommand.setText("—");
         } else {
             binding.pairingIp.setText(ip);
-            binding.pairingCommand.setText(getString(R.string.pairing_command_template, ip));
+            binding.pairingCommand.setText(connectCommand(ip));
         }
+
+        if (binding.pairingPortSwitch.isChecked() != portDiscovery) {
+            binding.pairingPortSwitch.setChecked(portDiscovery);
+        }
+        binding.pairingPortGroup.setVisibility(portDiscovery ? View.VISIBLE : View.GONE);
+        binding.pairingPort.setText(port > 0
+                ? String.valueOf(port)
+                : getString(R.string.pairing_port_unknown));
     }
 
     // ---------- Monitor card ----------

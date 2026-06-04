@@ -10,6 +10,7 @@ public final class ControlReceiver extends BroadcastReceiver {
     static final String ACTION_RESUME = "app.homeadbguard.action.RESUME";
     static final String ACTION_END_SNOOZE = "app.homeadbguard.action.END_SNOOZE";
     static final String ACTION_STOP_GUARD = "app.homeadbguard.action.STOP_GUARD";
+    static final String ACTION_REFRESH = "app.homeadbguard.action.REFRESH";
 
     /** Default duration when pausing from the notification (in-app offers a choice). */
     private static final int NOTIFICATION_PAUSE_MINUTES = 60;
@@ -41,6 +42,14 @@ public final class ControlReceiver extends BroadcastReceiver {
         } else if (ACTION_END_SNOOZE.equals(action)) {
             Prefs.setSnoozeUntil(context, 0L);
             Prefs.setLastEvaluation(context, "Snooze ended from notification");
+            MonitorService.applyCurrentState(context, true);
+        } else if (ACTION_REFRESH.equals(action)) {
+            // Manual unstick: re-run the home gate (which (re)starts the FGS or
+            // re-arms the passive watch as appropriate) and force a full ADB
+            // re-establishment. Useful when the state is wedged and the user does
+            // not want to wait for the next watchdog tick.
+            Prefs.setLastEvaluation(context, "Manual refresh from notification");
+            MonitorService.requestStart(context);
             MonitorService.applyCurrentState(context, true);
         } else if (ACTION_STOP_GUARD.equals(action)) {
             Prefs.setMonitoring(context, false);

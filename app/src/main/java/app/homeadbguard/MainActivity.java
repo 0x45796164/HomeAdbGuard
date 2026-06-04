@@ -41,6 +41,7 @@ public final class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST = 1001;
 
     private ActivityMainBinding binding;
+    private boolean initialCollapseApplied;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private SharedPreferences.OnSharedPreferenceChangeListener prefsListener;
@@ -475,13 +476,32 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void wireCollapsible(View header, View content, ImageView chevron) {
-        header.setOnClickListener(v -> {
-            boolean willCollapse = content.getVisibility() == View.VISIBLE;
-            content.setVisibility(willCollapse ? View.GONE : View.VISIBLE);
-            chevron.setImageResource(willCollapse
-                    ? R.drawable.ic_expand_more
-                    : R.drawable.ic_expand_less);
-        });
+        header.setOnClickListener(v -> setCollapsed(content, chevron, content.getVisibility() == View.VISIBLE));
+    }
+
+    private void setCollapsed(View content, ImageView chevron, boolean collapsed) {
+        content.setVisibility(collapsed ? View.GONE : View.VISIBLE);
+        chevron.setImageResource(collapsed ? R.drawable.ic_expand_more : R.drawable.ic_expand_less);
+    }
+
+    /**
+     * Once per activity launch, collapse the cards by default after the user has
+     * finished initial setup — a configured user just wants the at-a-glance status
+     * hero, not a wall of expanded controls. Before setup completes the cards stay
+     * expanded so the steps are visible. Applied a single time so it never fights a
+     * manual expand/collapse the user makes during the session. (The setup card is
+     * hidden entirely once configured, so it is intentionally not included here.)
+     */
+    private void applyInitialCollapseState(boolean fullyConfigured) {
+        if (initialCollapseApplied) return;
+        initialCollapseApplied = true;
+        if (!fullyConfigured) return;
+        setCollapsed(binding.currentNetworkContent, binding.currentNetworkChevron, true);
+        setCollapsed(binding.homeContent, binding.homeChevron, true);
+        setCollapsed(binding.pairingContent, binding.pairingChevron, true);
+        setCollapsed(binding.monitorContent, binding.monitorChevron, true);
+        setCollapsed(binding.diagCard.diagContent, binding.diagCard.diagChevron, true);
+        setCollapsed(binding.aboutCard.aboutContent, binding.aboutCard.aboutChevron, true);
     }
 
     // ---------- Refresh ----------
@@ -496,6 +516,7 @@ public final class MainActivity extends AppCompatActivity {
         boolean monitoring = Prefs.monitoring(this);
         boolean fullyConfigured = permsOk && secureOk && homeSaved;
 
+        applyInitialCollapseState(fullyConfigured);
         renderStatusHero(fullyConfigured, monitoring, match);
         renderSetup(permsOk, secureOk, homeSaved, fullyConfigured);
         renderCurrentNetwork(wifi, match);

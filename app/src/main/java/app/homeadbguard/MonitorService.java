@@ -48,6 +48,17 @@ public final class MonitorService extends Service {
      */
     private static volatile Network lastAtHomeNetwork = null;
 
+    /**
+     * Last ADB on/off state we actually applied. Used to force an adbd re-bind
+     * only on a real off→on (re-establishment) transition — e.g. the first
+     * confirmed at-home apply after a reboot, when Wi-Fi-identity redaction lifts
+     * at unlock — rather than on every routine unlock. A plain unlock while ADB
+     * is already on must NOT toggle the listener, or the live wireless session
+     * blips off and back on every single lock/unlock. {@code null} = unknown
+     * (fresh process), treated as "not on" so the first enable forces a bind.
+     */
+    private static volatile Boolean lastAppliedAdbOn = null;
+
     private final Runnable watchdog = new Runnable() {
         @Override
         public void run() {
@@ -180,8 +191,17 @@ public final class MonitorService extends Service {
         // the Armed switch, the network verdict, and the temporary overrides.
         GuardState state = GuardState.resolve(context, match);
 
+        // Force a rebind on explicit re-establishment events (caller passed true),
+        // OR whenever ADB is transitioning from not-on to on — that off→on edge is
+        // the only routine moment a fresh listener bind is genuinely needed (e.g.
+        // first at-home apply after a reboot). A steady on→on re-evaluation (a plain
+        // unlock, a watchdog tick) leaves the live session untouched.
+        boolean effectiveForce = forceAdbRebind
+                || (state.adbShouldBeOn && !Boolean.TRUE.equals(lastAppliedAdbOn));
+
         SecureSettings.ApplyResult apply =
-                SecureSettings.setSafeState(context, state.adbShouldBeOn, forceAdbRebind);
+                SecureSettings.setSafeState(context, state.adbShouldBeOn, effectiveForce);
+        lastAppliedAdbOn = state.adbShouldBeOn;
         Instant now = Instant.now();
         Prefs.setLastEvaluation(context, now + ": mode=" + state.mode
                 + ", reason=" + state.reason
@@ -200,7 +220,7 @@ public final class MonitorService extends Service {
         }
 
         if (state.adbShouldBeOn && Prefs.monitoring(context)) {
-            scheduleDetectAndRecover(context.getApplicationContext(), forceAdbRebind);
+            scheduleDetectAndRecover(context.getApplicationContext(), effectiveForce);
         }
     }
 
@@ -351,10 +371,19 @@ public final class MonitorService extends Service {
     }
 
     /**
-     * Re-evaluate the moment the device is unlocked (and on screen-on). After a
-     * reboot the OS only delivers BOOT_COMPLETED (and only lifts Wi-Fi-identity
-     * redaction for our reads) once the user has unlocked — so unlock is the
-     * correct, reliable point to confirm the network and bring ADB back on.
+     * Re-evaluate the moment the device is unlocked. After a reboot the OS only
+     * delivers BOOT_COMPLETED (and only lifts Wi-Fi-identity redaction for our
+     * reads) once the user has unlocked — so unlock is the correct, reliable
+     * point to confirm the network and bring ADB back on.
+     *
+     * <p>This is a plain re-evaluation ({@code forceAdbRebind == false}), NOT a
+     * forced toggle: an already-listening adbd is left alone so a live wireless
+     * session is not interrupted on every lock/unlock. The off→on transition
+     * detection in {@link #applyCurrentState} still forces a bind on the genuine
+     * first-confirmed-at-home case (e.g. right after a reboot). We deliberately
+     * do not listen for bare {@code ACTION_SCREEN_ON} — a screen wake without an
+     * unlock (notifications, ambient display) changes no network state and would
+     * only add churn.
      */
     private void registerUserPresentReceiver() {
         if (userPresentReceiver != null) return;
@@ -362,13 +391,12 @@ public final class MonitorService extends Service {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if (Prefs.monitoring(MonitorService.this)) {
-                    applyCurrentState(MonitorService.this, true);
+                    applyCurrentState(MonitorService.this, false);
                 }
             }
         };
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_USER_PRESENT);
-        filter.addAction(Intent.ACTION_SCREEN_ON);
         registerReceiver(userPresentReceiver, filter);
     }
 
@@ -431,6 +459,7 @@ public final class MonitorService extends Service {
         PendingIntent resume = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_RESUME, 2);
         PendingIntent stopGuard = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_STOP_GUARD, 3);
         PendingIntent endSnooze = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_END_SNOOZE, 4);
+        PendingIntent refresh = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_REFRESH, 5);
 
         String network = wifi.ssid == null || wifi.ssid.isEmpty() ? "no Wi-Fi" : wifi.ssid;
         String title;
@@ -447,23 +476,27 @@ public final class MonitorService extends Service {
                 title = "Protected · Wireless ADB on";
                 body = network + " · " + verifiedLine(ctx);
                 b.addAction(action(android.R.drawable.ic_media_pause, "Pause", pause));
+                b.addAction(action(android.R.drawable.ic_popup_sync, "Refresh", refresh));
                 b.addAction(action(android.R.drawable.ic_menu_close_clear_cancel, "Stop guard", stopGuard));
                 break;
             case PAUSED:
                 title = "Paused · " + state.reason.replaceFirst("^Paused — ", "");
                 body = network + " · resumes automatically";
                 b.addAction(action(android.R.drawable.ic_media_play, "Resume", resume));
+                b.addAction(action(android.R.drawable.ic_popup_sync, "Refresh", refresh));
                 b.addAction(action(android.R.drawable.ic_menu_close_clear_cancel, "Stop guard", stopGuard));
                 break;
             case SNOOZED:
                 title = "Snoozed · " + state.reason.replaceFirst("^Snoozed — ", "");
                 body = network + " · staying on for maintenance";
                 b.addAction(action(android.R.drawable.ic_menu_close_clear_cancel, "End snooze", endSnooze));
+                b.addAction(action(android.R.drawable.ic_popup_sync, "Refresh", refresh));
                 b.addAction(action(android.R.drawable.ic_menu_close_clear_cancel, "Stop guard", stopGuard));
                 break;
             case AWAY:
                 title = "Protected · ADB off (away)";
                 body = network + " · " + state.reason;
+                b.addAction(action(android.R.drawable.ic_popup_sync, "Refresh", refresh));
                 b.addAction(action(android.R.drawable.ic_menu_close_clear_cancel, "Stop guard", stopGuard));
                 break;
             case OFF:

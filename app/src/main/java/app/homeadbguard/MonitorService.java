@@ -6,8 +6,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ServiceInfo;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -18,6 +20,8 @@ import android.os.IBinder;
 import android.os.Looper;
 
 import java.time.Instant;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public final class MonitorService extends Service {
     static final String CHANNEL_ID = "monitor";
@@ -28,7 +32,12 @@ public final class MonitorService extends Service {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private ConnectivityManager cm;
     private ConnectivityManager.NetworkCallback callback;
+    private BroadcastReceiver userPresentReceiver;
     private long offHomeSinceMs = 0L;
+    private long lastWatchdogTickMs = 0L;
+
+    private static final ExecutorService DETECT_EXEC = Executors.newSingleThreadExecutor();
+    private static volatile long lastHealMs = 0L;
 
     /**
      * Last Wi-Fi {@link Network} we positively confirmed as the user's home network.
@@ -46,7 +55,16 @@ public final class MonitorService extends Service {
                 stopSelf();
                 return;
             }
-            applyCurrentState(MonitorService.this);
+            // A tick arriving much later than scheduled means the main looper
+            // was frozen (Doze / device asleep). adbd commonly drops its
+            // wireless listener across such a sleep while the setting stays 1,
+            // so force a re-bind on the first tick after the gap; otherwise a
+            // plain steady-state apply that never disrupts a live session.
+            long now = System.currentTimeMillis();
+            boolean dozeGap = lastWatchdogTickMs != 0L
+                    && (now - lastWatchdogTickMs) > WATCHDOG_MS * 2;
+            lastWatchdogTickMs = now;
+            applyCurrentState(MonitorService.this, dozeGap);
             if (offHomeGraceExpired()) return;
             handler.postDelayed(this, WATCHDOG_MS);
         }
@@ -59,6 +77,16 @@ public final class MonitorService extends Service {
         }
         WifiState wifi = WifiState.current(this);
         if (HomeMatcher.evaluate(this, wifi).atHome) {
+            offHomeSinceMs = 0L;
+            return false;
+        }
+        // Redacted Wi-Fi (transport present but identity unreadable — e.g. a
+        // background read right after boot, before ACTION_USER_PRESENT) is
+        // "unknown", NOT "away". Tearing the guard down here is what stranded
+        // ADB off after reboot: the FGS died and nothing re-triggered once the
+        // identity became readable. Keep watching instead of failing open the
+        // teardown; the unlock receiver and watchdog re-evaluate.
+        if (wifi.isRedacted()) {
             offHomeSinceMs = 0L;
             return false;
         }
@@ -119,6 +147,17 @@ public final class MonitorService extends Service {
     }
 
     static void applyCurrentState(Context context) {
+        applyCurrentState(context, false);
+    }
+
+    /**
+     * @param forceAdbRebind when true and the verdict is at-home, re-bind adbd
+     *     via a {@code 0 -> 1} toggle instead of a plain write. Pass true on
+     *     re-establishment events (service (re)start, Wi-Fi arrival, Doze exit,
+     *     explicit "Apply now"); false on steady-state re-evaluation so a live
+     *     wireless session is never interrupted.
+     */
+    static void applyCurrentState(Context context, boolean forceAdbRebind) {
         WifiState wifi = WifiState.current(context);
         HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
         Network active = activeWifiNetwork(context.getSystemService(ConnectivityManager.class));
@@ -137,30 +176,70 @@ public final class MonitorService extends Service {
             lastAtHomeNetwork = active;
         }
 
-        // Snooze: keep ADB enabled regardless. Snooze can only be armed when
-        // the user was already at home (see SnoozeArmer), so this never enables
-        // ADB on an unverified network — it only suppresses auto-disable.
-        if (Prefs.isSnoozeActive(context)) {
-            long remainingMin = (Prefs.snoozeRemainingMs(context) + 59_999L) / 60_000L;
-            match = new HomeMatcher.MatchResult(true, "Snoozed for " + remainingMin + " more min");
-        }
+        // Resolve the four-mode state (OFF / AWAY / ON / PAUSED / SNOOZED) from
+        // the Armed switch, the network verdict, and the temporary overrides.
+        GuardState state = GuardState.resolve(context, match);
 
-        SecureSettings.ApplyResult apply = SecureSettings.setSafeState(context, match.atHome);
+        SecureSettings.ApplyResult apply =
+                SecureSettings.setSafeState(context, state.adbShouldBeOn, forceAdbRebind);
         Instant now = Instant.now();
-        Prefs.setLastEvaluation(context, now + ": atHome=" + match.atHome
-                + ", reason=" + match.reason
+        Prefs.setLastEvaluation(context, now + ": mode=" + state.mode
+                + ", reason=" + state.reason
                 + ", wifi=" + wifiSummary(wifi)
                 + ", apply=" + apply);
-        Prefs.setLastDecision(context, match.atHome, match.reason);
-        Prefs.appendDecision(context, now + " " + (match.atHome ? "ENABLE" : "DISABLE")
-                + " — " + match.reason
+        Prefs.setLastDecision(context, state.adbShouldBeOn, state.reason);
+        Prefs.setLastMode(context, state.mode.name());
+        Prefs.appendDecision(context, now + " " + state.mode
+                + " — " + state.reason
                 + (wifi.ssid == null || wifi.ssid.isEmpty() ? "" : " (on " + wifi.ssid + ")"));
         if (Prefs.monitoring(context)) {
             NotificationManager nm = context.getSystemService(NotificationManager.class);
             if (nm != null) {
-                nm.notify(NOTIFICATION_ID, buildNotification(context, wifi, match));
+                nm.notify(NOTIFICATION_ID, buildNotification(context, wifi, state));
             }
         }
+
+        if (state.adbShouldBeOn && Prefs.monitoring(context)) {
+            scheduleDetectAndRecover(context.getApplicationContext(), forceAdbRebind);
+        }
+    }
+
+    /**
+     * Off-main detection + bounded recovery. We cannot read the live TLS port on
+     * hardened/SELinux-locked devices, so recovery is driven by the
+     * <em>read-back</em> of {@code adb_wifi_enabled}: if it does not read {@code 1}
+     * after we asked for ON (it was reverted, or never took), re-assert it with a
+     * {@code 0 -> 1} toggle. The port/socket probe still runs (best effort) and can
+     * upgrade the verdict to SETTING_ON_UNVERIFIED where readable, which also
+     * triggers recovery. Bounded to once per watchdog interval, and skipped right
+     * after a forced toggle so a fresh enable (which needs time to take) cannot
+     * start a re-toggle storm.
+     */
+    private static void scheduleDetectAndRecover(Context appContext, boolean wasForced) {
+        DETECT_EXEC.execute(() -> {
+            AdbState.Snapshot snap = AdbState.detect(appContext);
+            Prefs.setLastAdbState(appContext, snap.confidence.name(), snap.summary());
+
+            boolean readBackNotOn = snap.adbWifiSetting != 1; // asked ON but reads off/unreadable ⇒ re-assert
+            if (!wasForced && readBackNotOn) {
+                long now = System.currentTimeMillis();
+                if (now - lastHealMs >= WATCHDOG_MS) {
+                    lastHealMs = now;
+                    SecureSettings.forceAdbWifiRebind(appContext);
+                    Prefs.appendDecision(appContext, Instant.now()
+                            + " — recover: ADB not confirmed on (" + snap.summary() + "), re-asserting");
+                }
+            }
+
+            if (Prefs.monitoring(appContext)) {
+                NotificationManager nm = appContext.getSystemService(NotificationManager.class);
+                if (nm != null) {
+                    WifiState wifi = WifiState.current(appContext);
+                    HomeMatcher.MatchResult match = HomeMatcher.evaluate(appContext, wifi);
+                    nm.notify(NOTIFICATION_ID, buildNotification(appContext, wifi, GuardState.resolve(appContext, match)));
+                }
+            }
+        });
     }
 
     private static Network activeWifiNetwork(ConnectivityManager localCm) {
@@ -173,6 +252,19 @@ public final class MonitorService extends Service {
             return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ? active : null;
         } catch (RuntimeException e) {
             return null;
+        }
+    }
+
+    private static String verifiedLine(Context ctx) {
+        String confidence = Prefs.lastAdbConfidence(ctx);
+        switch (confidence) {
+            case "VERIFIED_ON":
+                return "ADB verified listening";
+            case "OFF":
+            case "UNKNOWN":
+                return "Re-asserting ADB…"; // read-back not confirmed on → recovering
+            default:
+                return "ADB on";
         }
     }
 
@@ -199,14 +291,30 @@ public final class MonitorService extends Service {
         NetworkWatch.disarm(this);
         WifiState wifi = WifiState.current(this);
         HomeMatcher.MatchResult match = HomeMatcher.evaluate(this, wifi);
-        startForeground(
-                NOTIFICATION_ID,
-                buildNotification(this, wifi, match),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-        );
+        try {
+            startForeground(
+                    NOTIFICATION_ID,
+                    buildNotification(this, wifi, GuardState.resolve(this, match)),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+            );
+        } catch (RuntimeException startDenied) {
+            // A location-type FGS cannot be started from the background without
+            // ACCESS_BACKGROUND_LOCATION (optional). Degrade gracefully: arm the
+            // passive Wi-Fi watch and stop; the next time the app is opened (or a
+            // Wi-Fi event fires) it starts from a foreground context instead.
+            Prefs.setLastEvaluation(this, "FGS start denied (background location off?): "
+                    + startDenied.getClass().getSimpleName());
+            NetworkWatch.arm(this);
+            stopSelf();
+            return;
+        }
         cm = getSystemService(ConnectivityManager.class);
         registerNetworkCallback();
-        applyCurrentState(this);
+        registerUserPresentReceiver();
+        // Service is (re)starting — adbd may be fresh (boot) or have dropped its
+        // listener; force a re-bind so ADB actually comes up, not just the setting.
+        applyCurrentState(this, true);
+        lastWatchdogTickMs = System.currentTimeMillis();
         handler.removeCallbacks(watchdog);
         handler.postDelayed(watchdog, WATCHDOG_MS);
     }
@@ -217,7 +325,9 @@ public final class MonitorService extends Service {
             stopSelf();
             return START_NOT_STICKY;
         }
-        applyCurrentState(this);
+        // Explicit (re)start command (boot, app update, sticky redelivery,
+        // requestStart) — treat as a re-establishment event.
+        applyCurrentState(this, true);
         return START_STICKY;
     }
 
@@ -230,7 +340,36 @@ public final class MonitorService extends Service {
             } catch (RuntimeException ignored) {
             }
         }
+        if (userPresentReceiver != null) {
+            try {
+                unregisterReceiver(userPresentReceiver);
+            } catch (RuntimeException ignored) {
+            }
+            userPresentReceiver = null;
+        }
         super.onDestroy();
+    }
+
+    /**
+     * Re-evaluate the moment the device is unlocked (and on screen-on). After a
+     * reboot the OS only delivers BOOT_COMPLETED (and only lifts Wi-Fi-identity
+     * redaction for our reads) once the user has unlocked — so unlock is the
+     * correct, reliable point to confirm the network and bring ADB back on.
+     */
+    private void registerUserPresentReceiver() {
+        if (userPresentReceiver != null) return;
+        userPresentReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (Prefs.monitoring(MonitorService.this)) {
+                    applyCurrentState(MonitorService.this, true);
+                }
+            }
+        };
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_USER_PRESENT);
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        registerReceiver(userPresentReceiver, filter);
     }
 
     @Override
@@ -248,7 +387,9 @@ public final class MonitorService extends Service {
         callback = new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
-                applyCurrentState(MonitorService.this);
+                // A Wi-Fi network just (re)appeared — any prior adbd wireless
+                // session is gone with the old link; force a re-bind.
+                applyCurrentState(MonitorService.this, true);
             }
 
             @Override
@@ -279,36 +420,67 @@ public final class MonitorService extends Service {
         }
     }
 
-    static Notification buildNotification(Context ctx, WifiState wifi, HomeMatcher.MatchResult match) {
+    static Notification buildNotification(Context ctx, WifiState wifi, GuardState state) {
         PendingIntent open = PendingIntent.getActivity(
                 ctx,
                 0,
                 new Intent(ctx, MainActivity.class),
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
         );
+        PendingIntent pause = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_PAUSE, 1);
+        PendingIntent resume = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_RESUME, 2);
+        PendingIntent stopGuard = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_STOP_GUARD, 3);
+        PendingIntent endSnooze = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_END_SNOOZE, 4);
 
-        PendingIntent disable = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_DISABLE_NOW, 1);
-        PendingIntent apply = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_APPLY_NOW, 2);
-        PendingIntent stop = ControlReceiver.pendingIntent(ctx, ControlReceiver.ACTION_STOP_MONITORING, 3);
-
-        String title = match.atHome
-                ? "Protected — ADB on at home"
-                : "Off-network — ADB disabled";
         String network = wifi.ssid == null || wifi.ssid.isEmpty() ? "no Wi-Fi" : wifi.ssid;
-        String body = "Network: " + network + "\n" + match.reason;
+        String title;
+        String body;
 
-        return new Notification.Builder(ctx, CHANNEL_ID)
+        Notification.Builder b = new Notification.Builder(ctx, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_stat_adb_guard)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setStyle(new Notification.BigTextStyle().bigText(body))
                 .setContentIntent(open)
                 .setOngoing(true)
-                .setShowWhen(false)
-                .addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_rotate, "Apply now", apply).build())
-                .addAction(new Notification.Action.Builder(android.R.drawable.ic_menu_close_clear_cancel, "Disable now", disable).build())
-                .addAction(new Notification.Action.Builder(android.R.drawable.ic_media_pause, "Stop", stop).build())
+                .setShowWhen(false);
+
+        switch (state.mode) {
+            case ON:
+                title = "Protected · Wireless ADB on";
+                body = network + " · " + verifiedLine(ctx);
+                b.addAction(action(android.R.drawable.ic_media_pause, "Pause", pause));
+                b.addAction(action(android.R.drawable.ic_menu_close_clear_cancel, "Stop guard", stopGuard));
+                break;
+            case PAUSED:
+                title = "Paused · " + state.reason.replaceFirst("^Paused — ", "");
+                body = network + " · resumes automatically";
+                b.addAction(action(android.R.drawable.ic_media_play, "Resume", resume));
+                b.addAction(action(android.R.drawable.ic_menu_close_clear_cancel, "Stop guard", stopGuard));
+                break;
+            case SNOOZED:
+                title = "Snoozed · " + state.reason.replaceFirst("^Snoozed — ", "");
+                body = network + " · staying on for maintenance";
+                b.addAction(action(android.R.drawable.ic_menu_close_clear_cancel, "End snooze", endSnooze));
+                b.addAction(action(android.R.drawable.ic_menu_close_clear_cancel, "Stop guard", stopGuard));
+                break;
+            case AWAY:
+                title = "Protected · ADB off (away)";
+                body = network + " · " + state.reason;
+                b.addAction(action(android.R.drawable.ic_menu_close_clear_cancel, "Stop guard", stopGuard));
+                break;
+            case OFF:
+            default:
+                title = "Guard off";
+                body = "Not managing ADB";
+                b.addAction(action(android.R.drawable.ic_media_play, "Resume guard", resume));
+                break;
+        }
+
+        return b.setContentTitle(title)
+                .setContentText(body)
                 .build();
+    }
+
+    private static Notification.Action action(int icon, String label, PendingIntent pi) {
+        return new Notification.Action.Builder(icon, label, pi).build();
     }
 
     private void createNotificationChannel() {

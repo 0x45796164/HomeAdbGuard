@@ -20,10 +20,17 @@ final class Prefs {
     static final String KEY_LAST_APPLY_RESULT = "last_apply_result";
     static final String KEY_DECISION_HISTORY = "decision_history";
     static final String KEY_SNOOZE_UNTIL = "snooze_until_millis";
+    static final String KEY_PAUSE_UNTIL = "pause_until_millis";
+
+    /** {@link #pauseUntil} sentinel: paused with no timer, until the user resumes. */
+    static final long PAUSE_INDEFINITE = -1L;
     static final String KEY_NETWORK_WATCH_ARMED = "network_watch_armed";
     static final String KEY_LAST_DECISION_PRESENT = "last_decision_present";
     static final String KEY_LAST_DECISION_AT_HOME = "last_decision_at_home";
     static final String KEY_LAST_DECISION_REASON = "last_decision_reason";
+    static final String KEY_LAST_ADB_CONFIDENCE = "last_adb_confidence";
+    static final String KEY_LAST_ADB_SUMMARY = "last_adb_summary";
+    static final String KEY_LAST_MODE = "last_mode";
 
     static final String KEY_STRICT_FINGERPRINT = "strict_fingerprint";
     static final String KEY_EXPECTED_SECURITY_TYPE = "expected_security_type";
@@ -212,7 +219,9 @@ final class Prefs {
     }
 
     static void setSnoozeUntil(Context context, long millis) {
-        get(context).edit().putLong(KEY_SNOOZE_UNTIL, millis).apply();
+        SharedPreferences.Editor edit = get(context).edit().putLong(KEY_SNOOZE_UNTIL, millis);
+        if (millis != 0L) edit.putLong(KEY_PAUSE_UNTIL, 0L);
+        edit.apply();
     }
 
     static boolean isSnoozeActive(Context context) {
@@ -221,6 +230,32 @@ final class Prefs {
 
     static long snoozeRemainingMs(Context context) {
         long until = snoozeUntil(context);
+        long now = System.currentTimeMillis();
+        return until > now ? (until - now) : 0L;
+    }
+
+    // ---- Pause (temporary OFF while home). Mutually exclusive with snooze. ----
+
+    static long pauseUntil(Context context) {
+        return get(context).getLong(KEY_PAUSE_UNTIL, 0L);
+    }
+
+    /** @param millis a future timestamp, {@link #PAUSE_INDEFINITE}, or 0 to clear. */
+    static void setPauseUntil(Context context, long millis) {
+        SharedPreferences.Editor edit = get(context).edit().putLong(KEY_PAUSE_UNTIL, millis);
+        if (millis != 0L) edit.putLong(KEY_SNOOZE_UNTIL, 0L); // opposites cannot coexist
+        edit.apply();
+    }
+
+    static boolean isPauseActive(Context context) {
+        long until = pauseUntil(context);
+        return until == PAUSE_INDEFINITE || (until > 0L && System.currentTimeMillis() < until);
+    }
+
+    /** @return remaining ms for a timed pause, {@link #PAUSE_INDEFINITE} if indefinite, else 0. */
+    static long pauseRemainingMs(Context context) {
+        long until = pauseUntil(context);
+        if (until == PAUSE_INDEFINITE) return PAUSE_INDEFINITE;
         long now = System.currentTimeMillis();
         return until > now ? (until - now) : 0L;
     }
@@ -268,6 +303,29 @@ final class Prefs {
 
     static String lastApplyResult(Context context) {
         return get(context).getString(KEY_LAST_APPLY_RESULT, "-");
+    }
+
+    static void setLastAdbState(Context context, String confidence, String summary) {
+        get(context).edit()
+                .putString(KEY_LAST_ADB_CONFIDENCE, safe(confidence))
+                .putString(KEY_LAST_ADB_SUMMARY, safe(summary))
+                .apply();
+    }
+
+    static String lastAdbConfidence(Context context) {
+        return get(context).getString(KEY_LAST_ADB_CONFIDENCE, "");
+    }
+
+    static String lastAdbSummary(Context context) {
+        return get(context).getString(KEY_LAST_ADB_SUMMARY, "-");
+    }
+
+    static void setLastMode(Context context, String mode) {
+        get(context).edit().putString(KEY_LAST_MODE, safe(mode)).apply();
+    }
+
+    static String lastMode(Context context) {
+        return get(context).getString(KEY_LAST_MODE, "");
     }
 
     private static String join(Set<String> items) {

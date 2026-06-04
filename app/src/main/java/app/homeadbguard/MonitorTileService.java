@@ -36,7 +36,7 @@ public final class MonitorTileService extends TileService {
         } else {
             Prefs.setMonitoring(this, true);
             MonitorService.requestStart(this);
-            MonitorService.applyCurrentState(this);
+            MonitorService.applyCurrentState(this, true);
             Prefs.setLastEvaluation(this, "Monitoring started from Quick Settings tile");
         }
         renderTile();
@@ -65,11 +65,23 @@ public final class MonitorTileService extends TileService {
             subtitle = getString(R.string.tile_evaluating_subtitle);
             state = Tile.STATE_ACTIVE;
         } else {
-            boolean atHome = Prefs.lastDecisionAtHome(this);
             icon = R.drawable.ic_shield_check;
-            label = getString(atHome ? R.string.tile_active_home_label : R.string.tile_active_away_label);
-            subtitle = getString(atHome ? R.string.tile_active_home_subtitle : R.string.tile_active_away_subtitle);
+            label = getString(R.string.tile_active_home_label);
             state = Tile.STATE_ACTIVE;
+            switch (Prefs.lastMode(this)) {
+                case "PAUSED":
+                    subtitle = getString(R.string.tile_paused_subtitle);
+                    break;
+                case "SNOOZED":
+                    subtitle = getString(R.string.tile_snoozed_subtitle);
+                    break;
+                case "AWAY":
+                    subtitle = getString(R.string.tile_active_away_subtitle);
+                    break;
+                default: // ON (or legacy)
+                    subtitle = getString(R.string.tile_active_home_subtitle);
+                    break;
+            }
         }
 
         tile.setIcon(Icon.createWithResource(this, icon));

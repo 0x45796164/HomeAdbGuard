@@ -129,6 +129,11 @@ Full walkthrough: [docs/USAGE.md](docs/USAGE.md).
 
 - No `INTERNET` permission. No cleartext traffic. The app cannot reach the
   network at all.
+- Background location (`ACCESS_BACKGROUND_LOCATION`) is **optional** — grant it
+  only if you want ADB to re-enable on its own after a reboot. Without it the
+  app works fine; you just open it once after rebooting. It is used solely to
+  read your Wi-Fi SSID/BSSID in the background; nothing leaves the device (no
+  `INTERNET`).
 - No analytics, telemetry, crash reporting, or third-party SDKs.
 - Only Google AndroidX UI libraries (`androidx.appcompat`, Material
   Components).

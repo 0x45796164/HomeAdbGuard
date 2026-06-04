@@ -20,6 +20,27 @@ final class SecureSettings {
     }
 
     static ApplyResult setSafeState(Context context, boolean atHome) {
+        return setSafeState(context, atHome, false);
+    }
+
+    /**
+     * Apply the safe state. When enabling, {@code forceAdbRebind} controls how
+     * {@code adb_wifi_enabled} is written:
+     *
+     * <ul>
+     *   <li>{@code false} (steady-state ticks): a plain write of {@code 1}. Cheap
+     *       and non-disruptive — it leaves an already-listening adbd untouched, so
+     *       an active wireless session is never interrupted.</li>
+     *   <li>{@code true} (re-establishment events: service (re)start, Wi-Fi
+     *       arrival, Doze exit, explicit "Apply now"): a {@code 0 -> 1} toggle that
+     *       forces adbd to (re)bind its listening port. A plain rewrite of {@code 1}
+     *       over an already-{@code 1} value fires no settings-change notification, so
+     *       after a reboot or Doze tore the listener down — while the setting stayed
+     *       {@code 1} — adbd would otherwise never re-bind and ADB stays silently
+     *       off.</li>
+     * </ul>
+     */
+    static ApplyResult setSafeState(Context context, boolean atHome, boolean forceAdbRebind) {
         ApplyResult denied = requirePermission(context);
         if (denied != null) return denied;
 
@@ -27,40 +48,33 @@ final class SecureSettings {
         boolean adbOk;
         if (atHome) {
             devOk = putGlobalInt(context, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 1);
-            adbOk = putGlobalInt(context, ADB_WIFI_ENABLED, 1);
+            if (forceAdbRebind) {
+                adbOk = forceAdbWifiRebind(context);
+            } else {
+                adbOk = putGlobalInt(context, ADB_WIFI_ENABLED, 1);
+            }
         } else {
             adbOk = putGlobalInt(context, ADB_WIFI_ENABLED, 0);
             devOk = putGlobalInt(context, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0);
         }
 
-        return record(context, new ApplyResult(true, devOk, adbOk, atHome ? "requested enable" : "requested disable"));
+        return record(context, new ApplyResult(true, devOk, adbOk,
+                atHome ? (forceAdbRebind ? "requested enable (rebind)" : "requested enable") : "requested disable"));
     }
 
     /**
-     * Force-enable Developer options and ADB over Wi-Fi when the device is on a trusted network.
-     * Refuses (and disables) when not at home, so the button never weakens the protection.
-     *
-     * Toggles ADB_WIFI_ENABLED 0 → 1 with a short delay to nudge AOSP adbd to re-bind the
-     * listening port. A plain rewrite of `1` over an already-`1` value is sometimes ignored.
+     * Force AOSP adbd to (re)bind its wireless listening port by toggling
+     * {@code adb_wifi_enabled} {@code 0 -> 1} with a short delay. Returns an
+     * optimistic {@code true}: the re-enable write is scheduled on the main
+     * looper and we report the intent rather than blocking on its result.
      */
-    static ApplyResult enableNowIfAtHome(Context context) {
-        ApplyResult denied = requirePermission(context);
-        if (denied != null) return denied;
-
-        WifiState wifi = WifiState.current(context);
-        HomeMatcher.MatchResult match = HomeMatcher.evaluate(context, wifi);
-        if (!match.atHome) {
-            return record(context, new ApplyResult(true, false, false, "refused: " + match.reason));
-        }
-
-        boolean devOk = putGlobalInt(context, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 1);
+    static boolean forceAdbWifiRebind(Context context) {
         putGlobalInt(context, ADB_WIFI_ENABLED, 0);
         new Handler(Looper.getMainLooper()).postDelayed(
                 () -> putGlobalInt(context, ADB_WIFI_ENABLED, 1),
                 ADB_TOGGLE_DELAY_MS
         );
-
-        return record(context, new ApplyResult(true, devOk, true, "force enable (toggled)"));
+        return true;
     }
 
     static ApplyResult disableNow(Context context) {

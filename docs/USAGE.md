@@ -26,53 +26,72 @@ adb shell dumpsys package app.homeadbguard | grep WRITE_SECURE_SETTINGS
 1. Open **Home ADB Guard**.
 2. Tap **Request runtime permissions** and allow Location, Nearby Wi-Fi
    devices, and Notifications.
-3. Make sure system Location is on.
+3. Make sure system Location is on. Optionally set the app's Location to **"Allow
+   all the time"** if you want ADB to come back automatically after a reboot
+   (see below) — otherwise the foreground permission is enough.
 4. Connect to your home Wi-Fi.
 5. If Developer options is hidden: Settings → About phone → Software
    information → tap **Build number** 7 times.
 6. Open Developer options → enable **Wireless debugging** once manually.
    Accept the trust prompt for this Wi-Fi.
-7. In the app: **Save current Wi-Fi as home**, then **Start monitoring**.
+7. In the app: **Save current Wi-Fi as home**, then turn on **Guard armed**.
 
 Step 6 is unavoidable — Android only lets the user accept the Wireless
 debugging trust prompt, and that prompt is tied to the specific Wi-Fi network.
 The app can toggle ADB on/off after that, but it can't pair a new computer
 for you.
 
-## The main button
+## The Armed switch and the four states
 
-**Enable ADB now** on the Monitoring card. It refuses unless the device is on
-a saved home Wi-Fi (fail-closed), then writes `development_settings_enabled =
-1` and toggles `adb_wifi_enabled` so AOSP `adbd` re-binds.
+The Monitoring card has one primary control — the **Guard armed** switch. While
+armed, the guard resolves one of four states and keeps ADB in the matching
+position, confirming it by *reading `adb_wifi_enabled` back*, not just writing it:
 
-The other three buttons:
+| State | When | ADB |
+|-------|------|-----|
+| **ON** | armed, on home Wi-Fi | Developer options + Wireless debugging on |
+| **AWAY** | armed, off home Wi-Fi | forced off |
+| **PAUSED** | armed, you paused at home | off (timed or until you resume) → auto-returns to ON |
+| **SNOOZED** | armed, maintenance window | on, survives a brief trip out → auto-ends |
 
-- **Re-check now** — re-evaluates the current network and applies the matching
-  state. The 30-second watchdog already does this in the background.
-- **Disable ADB now** — writes both settings to `0`.
-- **Stop and disable** — stops monitoring entirely and writes both settings
-  to `0`.
+There is no "Enable / Apply / Disable" button any more — arming the guard makes
+ADB ON automatic and self-correcting. If the read-back ever shows ADB off while
+it should be on, the guard re-asserts it (a `0 → 1` toggle that makes `adbd`
+re-bind).
+
+## Pause and Snooze
+
+Both live on the Monitoring card and are **opposites that cancel each other**:
+
+- **Pause** — turn ADB off for a while *without leaving home*. Pick 15 / 30 /
+  60 minutes, or **Pause until I resume**. It returns to ON automatically.
+- **Snooze** — keep ADB *on* through a maintenance window even if you step out
+  (15 / 30 / 60 minutes). Only **armable while on trusted Wi-Fi**, so it cannot
+  turn ADB on while away.
 
 ## Auto-toggle on / off home Wi-Fi
 
-Optional. When **Start monitoring** is on:
+When the guard is armed:
 
-- Joining the saved network → ADB turned on, persistent notification appears.
-- Leaving the saved network → after a 60-second grace window, ADB is turned
-  off and the foreground service stops.
-- A passive Wi-Fi callback (no foreground service running) re-arms when you
-  rejoin home — the OS wakes the app.
+- Joining the saved network → ADB on, persistent notification appears.
+- Leaving the saved network → after a 60-second grace window, ADB off.
+- The guard re-checks on Wi-Fi changes, **when you unlock the device**, and
+  every 30 seconds. The unlock re-check matters after a reboot: Android only
+  lets the app read Wi-Fi identity once unlocked.
+
+The monitor runs as a **location-type foreground service**. Reading Wi-Fi
+identity in the background (e.g. right after a reboot, before you open the app)
+requires **background location ("Allow all the time")**, which is **optional**
+and entirely your choice:
+
+- **Granted** → after a reboot the guard re-reads your Wi-Fi and turns ADB back
+  on by itself.
+- **Not granted** → Android redacts Wi-Fi identity for background reads, so the
+  guard fails closed after a reboot until you **open the app once** (which gives
+  it foreground location); from then on it works for the rest of the session.
 
 The default posture is **fail-closed**: if Wi-Fi identity is unreadable, if
-Location is off, if BSSID does not match, the app disables ADB.
-
-## Snooze auto-disable
-
-For maintenance flows (flashing a ROM, long debugging session, scrcpy session
-where you're leaving the house) the Monitoring card has 15 / 30 / 60-minute
-snooze buttons. While snoozed, ADB stays on regardless of network. Snooze
-can only be **armed while currently on trusted Wi-Fi**, so it cannot be used
-to turn ADB on while away.
+Location is off, or if the BSSID does not match, the guard disables ADB.
 
 ## Trusted networks
 
@@ -101,23 +120,23 @@ network legitimately rotates BSSIDs you can't enumerate.
 Drag the **Home ADB** tile into your Quick Settings panel — long-press an
 empty slot in the QS edit screen. The tile mirrors the monitoring state:
 
-- Active + "Protected at home" — monitoring is on, current Wi-Fi is trusted,
-  ADB is allowed.
-- Active + "Off-network — ADB off" — monitoring is on but the network isn't
-  trusted; the app is holding ADB disabled.
-- Inactive + "Monitoring off" — monitoring is stopped.
+- Active + "Protected — ADB on" / "Paused — ADB off" / "Snoozed — ADB on" /
+  "Away — ADB off" — the guard is armed; the subtitle mirrors the current state.
+- Inactive + "Monitoring off" — the guard is disarmed.
 
-Tapping the tile toggles monitoring on or off. The device must be unlocked
-first (`unlockAndRun`), so the tile cannot weaken protection from the lock
-screen.
+Tapping the tile arms or disarms the guard. The device must be unlocked first
+(`unlockAndRun`), so the tile cannot weaken protection from the lock screen.
 
 For most use cases this replaces opening the app entirely.
 
 ## Notification actions
 
-While the foreground service is running, the notification has three quick
-actions: **Apply now** (re-evaluate the current Wi-Fi), **Disable now**, and
-**Stop** (stop monitoring and disable).
+The persistent notification is state-driven:
+
+- **ON** — *Pause* · *Stop guard*
+- **PAUSED** — *Resume* · *Stop guard*
+- **SNOOZED** — *End snooze* · *Stop guard*
+- **AWAY** — *Stop guard*
 
 ## Pairing helper
 
@@ -153,26 +172,29 @@ Avoid any "deep sleep" / "hibernate apps" list.
 | Location permission denied or system Location off | Wi-Fi identity unavailable. Fails closed and disables. |
 | SSID matches but BSSID is new | Disables, unless SSID-only fallback is on or you add the new BSSID. |
 | Phone reboots | If monitoring was on, `BootReceiver` re-applies the rule: home Wi-Fi → service starts; otherwise → writes both off and arms the passive watch. |
-| OEM blocks boot start | Open the app once, tap **Start monitoring**, and set battery to Unrestricted. |
+| OEM blocks boot start | Open the app once, turn on **Guard armed**, and set battery to Unrestricted. |
 | App is uninstalled | The app can't run anymore. Manually disable Developer options / Wireless debugging if you want. |
 
 ## Verifying behavior with ADB
 
-`Settings.Global.DEVELOPMENT_SETTINGS_ENABLED` always reads back `0` for
-third-party apps — the app treats its own write as a *request* and can't
-display the actual state. Check it yourself:
+The app holds `WRITE_SECURE_SETTINGS`, so it reads these values back and shows
+the result in Diagnostics → **ADB state (verified)**, including whether the
+wireless `adbd` daemon is actually listening (`service.adb.tls.port`). To
+cross-check from a computer:
 
 ```sh
 adb shell settings get global development_settings_enabled
 adb shell settings get global adb_wifi_enabled
+adb shell getprop service.adb.tls.port
 ```
 
-Both `1` on trusted Wi-Fi with monitoring active; both `0` after disable or
-leaving the network.
+Both settings read `1` on trusted Wi-Fi with monitoring active; the port is a
+number (≈30000–49999) when wireless debugging is truly listening, or `-1` when
+it is not.
 
 ## Uninstall
 
-From the app: **Stop and disable**. Or from a host:
+From the app: **Stop guard** (on the notification or the Monitoring card). Or from a host:
 
 ```sh
 adb shell settings put global adb_wifi_enabled 0

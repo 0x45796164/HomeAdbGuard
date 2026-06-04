@@ -24,7 +24,7 @@ final class SnoozeArmer {
         long until = System.currentTimeMillis() + (long) minutes * 60_000L;
         Prefs.setSnoozeUntil(context, until);
         Prefs.setLastEvaluation(context, "Snooze armed for " + minutes + " minutes");
-        MonitorService.applyCurrentState(context);
+        MonitorService.applyCurrentState(context, true);
         return Result.ARMED;
     }
 

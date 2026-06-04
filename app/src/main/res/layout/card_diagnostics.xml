@@ -106,6 +106,9 @@
             <TextView style="@style/Label" android:layout_height="wrap_content" android:layout_width="wrap_content" android:layout_marginTop="8dp" android:text="@string/diag_last_apply" />
             <TextView style="@style/Value" android:id="@+id/diag_last_apply" android:layout_height="wrap_content" android:layout_width="match_parent" android:fontFamily="monospace" tools:text="…" />
 
+            <TextView style="@style/Label" android:layout_height="wrap_content" android:layout_width="wrap_content" android:layout_marginTop="8dp" android:text="@string/diag_adb_state" />
+            <TextView style="@style/Value" android:id="@+id/diag_adb_state" android:layout_height="wrap_content" android:layout_width="match_parent" android:fontFamily="monospace" tools:text="VERIFIED_ON · dev=1 adb_wifi=1 port=37104 socket=OK" />
+
             <TextView style="@style/Label" android:layout_height="wrap_content" android:layout_width="wrap_content" android:layout_marginTop="16dp" android:text="@string/diag_history_label" />
             <TextView
                 android:id="@+id/diag_history"

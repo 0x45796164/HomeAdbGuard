@@ -9,8 +9,14 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Background location: OPTIONAL. Only needed so the monitor service can read
+         the Wi-Fi SSID/BSSID while in the background (e.g. right after a reboot).
+         Without it the app still works — Android 13+ redacts background Wi-Fi
+         reads, so the guard simply waits until the app is opened once. -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
     <!-- Protected permission. Must be granted once with ADB after install. -->
     <uses-permission
@@ -40,11 +46,7 @@
         <service
             android:name=".MonitorService"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="Monitor the current Wi-Fi network and toggle local developer options and wireless debugging after explicit ADB-granted permission." />
-        </service>
+            android:foregroundServiceType="location" />
 
         <receiver
             android:name=".BootReceiver"

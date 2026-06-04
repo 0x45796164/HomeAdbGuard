@@ -3,22 +3,26 @@
     <string name="app_name">Home ADB Guard</string>
     <string name="app_tagline">ADB over Wi-Fi only at home</string>
 
-    <!-- Status hero card -->
-    <string name="status_protected_title">Protected at home</string>
-    <string name="status_protected_subtitle">You\'re on your trusted Wi-Fi. ADB over Wi-Fi and Developer options are allowed to be on.</string>
-    <string name="status_blocked_title">ADB disabled</string>
-    <string name="status_blocked_subtitle">Not on a trusted network. The app keeps ADB over Wi-Fi and Developer options requested off.</string>
+    <!-- Status hero card (four modes + setup/off) -->
+    <string name="status_protected_title">Protected — ADB on</string>
+    <string name="status_protected_subtitle">On your trusted Wi-Fi. Wireless ADB and Developer options are on.</string>
+    <string name="status_blocked_title">Protected — ADB off</string>
+    <string name="status_blocked_subtitle">Away from your home Wi-Fi. Wireless ADB is off.</string>
+    <string name="status_paused_title">Paused — ADB off</string>
+    <string name="status_paused_subtitle">You paused at home. Protection resumes automatically.</string>
+    <string name="status_snoozed_title">Snoozed — ADB on</string>
+    <string name="status_snoozed_subtitle">Keeping ADB on through a maintenance window.</string>
     <string name="status_setup_title">Setup needed</string>
     <string name="status_setup_subtitle">Finish the steps below to start guarding ADB.</string>
-    <string name="status_idle_title">Monitoring is off</string>
-    <string name="status_idle_subtitle">Your home Wi-Fi is saved. Tap Start monitoring to begin.</string>
+    <string name="status_idle_title">Guard off</string>
+    <string name="status_idle_subtitle">Your home Wi-Fi is saved. Tap the Guard switch to start.</string>
 
     <!-- Setup checklist -->
     <string name="setup_title">Setup</string>
     <string name="setup_subtitle">Three quick steps. You only do them once.</string>
 
     <string name="setup_step_permissions">Grant runtime permissions</string>
-    <string name="setup_step_permissions_desc">Location, Nearby Wi-Fi devices, and Notifications. Required for Android to expose Wi-Fi identity.</string>
+    <string name="setup_step_permissions_desc">Location, Nearby Wi-Fi devices, and Notifications — required for Android to expose Wi-Fi identity. Optional: set Location to \"Allow all the time\" so ADB also comes back on its own after a reboot; without it, just open the app once after rebooting.</string>
     <string name="setup_action_permissions">Grant permissions</string>
 
     <string name="setup_step_secure_settings">Grant WRITE_SECURE_SETTINGS via ADB</string>
@@ -52,15 +56,30 @@
     <!-- Monitoring card -->
     <string name="monitor_title">Monitoring</string>
     <string name="monitor_subtitle">Foreground service that watches the active Wi-Fi and applies the rule.</string>
-    <string name="monitor_switch_label">Monitor in background</string>
-    <string name="monitor_switch_desc">Runs as a persistent notification. Re-evaluates on Wi-Fi changes and every 30 seconds.</string>
-    <string name="monitor_action_enable">Enable ADB now</string>
-    <string name="monitor_action_apply">Re-check now</string>
-    <string name="monitor_action_disable">Disable ADB now</string>
-    <string name="monitor_action_stop">Stop and disable</string>
+    <string name="monitor_switch_label">Guard armed</string>
+    <string name="monitor_switch_desc">Watches Wi-Fi and keeps ADB on at home. Runs as a persistent notification, re-checking on Wi-Fi changes, on unlock, and every 30 seconds.</string>
+    <string name="monitor_action_stop">Stop guard</string>
 
-    <string name="enable_refused">Not on a trusted network — enable refused</string>
-    <string name="enable_succeeded">ADB requested on. Verify with adb shell settings get global adb_wifi_enabled.</string>
+    <!-- Pause: temporary OFF while home -->
+    <string name="pause_title">Pause</string>
+    <string name="pause_subtitle">Turn ADB off for a while without leaving home. It resumes automatically.</string>
+    <string name="pause_until_resume">Pause until I resume</string>
+    <string name="pause_resume">Resume now</string>
+    <string name="pause_active">Paused — ADB off</string>
+    <string name="pause_active_remaining">Paused — %1$s remaining</string>
+    <string name="pause_active_indefinite">Paused until you resume</string>
+
+    <!-- Durations (shared by Pause and Snooze) -->
+    <string name="dur_15">15 min</string>
+    <string name="dur_30">30 min</string>
+    <string name="dur_60">1 hour</string>
+
+    <!-- Snacks -->
+    <string name="guard_armed">Guard armed</string>
+    <string name="guard_off_snack">Guard stopped</string>
+    <string name="pause_armed">Paused for %1$d min</string>
+    <string name="pause_resumed">Resumed</string>
+    <string name="pause_needs_guard">Arm the guard first</string>
 
     <!-- Diagnostics -->
     <string name="diag_title">Diagnostics</string>
@@ -73,7 +92,8 @@
     <string name="diag_wifi_source">Wi-Fi source</string>
     <string name="diag_last_evaluation">Last evaluation</string>
     <string name="diag_last_apply">Last settings write</string>
-    <string name="diag_verify_hint">Android does not reliably report Developer options state to apps. Verify with:\n\nadb shell settings get global development_settings_enabled\nadb shell settings get global adb_wifi_enabled</string>
+    <string name="diag_adb_state">ADB state (verified)</string>
+    <string name="diag_verify_hint">The app reads these back and shows the result above. Cross-check from a computer with:\n\nadb shell settings get global development_settings_enabled\nadb shell settings get global adb_wifi_enabled\nadb shell getprop service.adb.tls.port</string>
     <string name="diag_copy_hint">Copy command</string>
     <string name="diag_history_label">Recent decisions</string>
     <string name="diag_history_empty">No decisions yet.</string>
@@ -113,9 +133,10 @@
     <!-- Quick Settings tile -->
     <string name="tile_label">Home ADB</string>
     <string name="tile_active_home_label">Home ADB</string>
-    <string name="tile_active_home_subtitle">Protected at home</string>
-    <string name="tile_active_away_label">Home ADB</string>
-    <string name="tile_active_away_subtitle">Off-network — ADB off</string>
+    <string name="tile_active_home_subtitle">Protected — ADB on</string>
+    <string name="tile_active_away_subtitle">Away — ADB off</string>
+    <string name="tile_paused_subtitle">Paused — ADB off</string>
+    <string name="tile_snoozed_subtitle">Snoozed — ADB on</string>
     <string name="tile_inactive_label">Home ADB</string>
     <string name="tile_inactive_subtitle">Monitoring off</string>
     <string name="tile_evaluating_subtitle">Starting…</string>

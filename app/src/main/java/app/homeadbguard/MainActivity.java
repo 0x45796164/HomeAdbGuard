@@ -180,6 +180,9 @@ public final class MainActivity extends AppCompatActivity {
             snack(getString(R.string.granted));
             return;
         }
+        // Background location ("Allow all the time") is optional and left to the
+        // user — see the setup hint / docs. Without it the guard still works; it
+        // just won't auto-recover after a reboot until the app is opened.
         requestPermissions(wanted.toArray(new String[0]), PERMISSION_REQUEST);
     }
 
@@ -380,32 +383,26 @@ public final class MainActivity extends AppCompatActivity {
             Prefs.setMonitoring(this, checked);
             if (checked) {
                 MonitorService.requestStart(this);
-                snack("Monitoring started");
+                snack(getString(R.string.guard_armed));
                 refresh();
             } else {
-                stopMonitoring("Monitoring stopped");
+                stopMonitoring(getString(R.string.guard_off_snack));
             }
         });
 
-        binding.monitorEnable.setOnClickListener(v -> {
-            SecureSettings.ApplyResult r = SecureSettings.enableNowIfAtHome(this);
-            snack(getString(r.adbWifiWriteOk ? R.string.enable_succeeded : R.string.enable_refused));
-            MonitorService.applyCurrentState(this);
+        binding.pause15.setOnClickListener(v -> pauseFor(15));
+        binding.pause30.setOnClickListener(v -> pauseFor(30));
+        binding.pause60.setOnClickListener(v -> pauseFor(60));
+        binding.pauseInf.setOnClickListener(v -> pauseFor(0)); // 0 ⇒ until resume
+        binding.pauseResume.setOnClickListener(v -> {
+            Prefs.setPauseUntil(this, 0L);
+            Prefs.setLastEvaluation(this, "Resumed from app");
+            MonitorService.applyCurrentState(this, true);
+            snack(getString(R.string.pause_resumed));
             refresh();
         });
 
-        binding.monitorApply.setOnClickListener(v -> {
-            MonitorService.applyCurrentState(this);
-            refresh();
-        });
-
-        binding.monitorDisable.setOnClickListener(v -> {
-            SecureSettings.disableNow(this);
-            snack("Disable requested");
-            refresh();
-        });
-
-        binding.monitorStop.setOnClickListener(v -> stopMonitoring("Stopped"));
+        binding.monitorStop.setOnClickListener(v -> stopMonitoring(getString(R.string.guard_off_snack)));
 
         binding.snooze15.setOnClickListener(v -> armSnooze(15));
         binding.snooze30.setOnClickListener(v -> armSnooze(30));
@@ -415,6 +412,24 @@ public final class MainActivity extends AppCompatActivity {
             snack(getString(R.string.snooze_cancel));
             refresh();
         });
+    }
+
+    private void pauseFor(int minutes) {
+        if (!Prefs.monitoring(this)) {
+            snack(getString(R.string.pause_needs_guard));
+            return;
+        }
+        long until = minutes <= 0
+                ? Prefs.PAUSE_INDEFINITE
+                : System.currentTimeMillis() + (long) minutes * 60_000L;
+        Prefs.setPauseUntil(this, until);
+        Prefs.setLastEvaluation(this, minutes <= 0
+                ? "Paused until resume" : "Paused for " + minutes + " min");
+        MonitorService.applyCurrentState(this);
+        snack(minutes <= 0
+                ? getString(R.string.pause_active_indefinite)
+                : getString(R.string.pause_armed, minutes));
+        refresh();
     }
 
     private void stopMonitoring(String snackMsg) {
@@ -497,18 +512,25 @@ public final class MainActivity extends AppCompatActivity {
         @ColorInt int container;
         @ColorInt int onContainer;
 
+        GuardState.Mode mode = GuardState.resolve(this, match).mode;
         if (!configured || !monitoring) {
             titleRes = configured ? R.string.status_idle_title : R.string.status_setup_title;
             subtitleRes = configured ? R.string.status_idle_subtitle : R.string.status_setup_subtitle;
             icon = R.drawable.ic_warning;
             container = ContextCompat.getColor(this, R.color.status_setup_container);
             onContainer = ContextCompat.getColor(this, R.color.status_setup);
-        } else if (match.atHome) {
-            titleRes = R.string.status_protected_title;
-            subtitleRes = R.string.status_protected_subtitle;
+        } else if (mode == GuardState.Mode.ON || mode == GuardState.Mode.SNOOZED) {
+            titleRes = mode == GuardState.Mode.SNOOZED ? R.string.status_snoozed_title : R.string.status_protected_title;
+            subtitleRes = mode == GuardState.Mode.SNOOZED ? R.string.status_snoozed_subtitle : R.string.status_protected_subtitle;
             icon = R.drawable.ic_shield_check;
             container = ContextCompat.getColor(this, R.color.status_protected_container);
             onContainer = ContextCompat.getColor(this, R.color.status_protected);
+        } else if (mode == GuardState.Mode.PAUSED) {
+            titleRes = R.string.status_paused_title;
+            subtitleRes = R.string.status_paused_subtitle;
+            icon = R.drawable.ic_warning;
+            container = ContextCompat.getColor(this, R.color.status_setup_container);
+            onContainer = ContextCompat.getColor(this, R.color.status_setup);
         } else {
             titleRes = R.string.status_blocked_title;
             subtitleRes = R.string.status_blocked_subtitle;
@@ -627,6 +649,21 @@ public final class MainActivity extends AppCompatActivity {
             binding.snoozeSubtitle.setText(R.string.snooze_subtitle);
         }
         binding.snoozeCancel.setVisibility(snoozing ? View.VISIBLE : View.GONE);
+
+        // Pause: when active, swap the duration chips for a Resume action.
+        boolean paused = Prefs.isPauseActive(this);
+        binding.pauseButtons.setVisibility(paused ? View.GONE : View.VISIBLE);
+        binding.pauseInf.setVisibility(paused ? View.GONE : View.VISIBLE);
+        binding.pauseResume.setVisibility(paused ? View.VISIBLE : View.GONE);
+        if (paused) {
+            long remMs = Prefs.pauseRemainingMs(this);
+            binding.pauseSubtitle.setText(remMs == Prefs.PAUSE_INDEFINITE
+                    ? getString(R.string.pause_active_indefinite)
+                    : getString(R.string.pause_active_remaining,
+                        getString(R.string.snooze_remaining, (remMs + 59_999L) / 60_000L)));
+        } else {
+            binding.pauseSubtitle.setText(R.string.pause_subtitle);
+        }
     }
 
     private void renderDiagnostics(WifiState wifi) {
@@ -638,6 +675,7 @@ public final class MainActivity extends AppCompatActivity {
         binding.diagCard.diagWifiSource.setText(valueOrDash(wifi.source));
         binding.diagCard.diagLastEval.setText(valueOrDash(Prefs.lastEvaluation(this)));
         binding.diagCard.diagLastApply.setText(valueOrDash(Prefs.lastApplyResult(this)));
+        binding.diagCard.diagAdbState.setText(valueOrDash(Prefs.lastAdbSummary(this)));
 
         List<String> history = Prefs.decisionHistory(this);
         binding.diagCard.diagHistory.setText(history.isEmpty()
@@ -648,6 +686,8 @@ public final class MainActivity extends AppCompatActivity {
     // ---------- Helpers ----------
 
     private boolean hasAllRuntimePermissions() {
+        // Background location is intentionally NOT required here — it is optional
+        // (it only adds auto-recovery after a reboot). Setup completes without it.
         return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 && checkSelfPermission(Manifest.permission.NEARBY_WIFI_DEVICES) == PackageManager.PERMISSION_GRANTED
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
